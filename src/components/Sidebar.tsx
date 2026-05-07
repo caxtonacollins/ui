@@ -14,7 +14,7 @@ const NAV: { id: NavSection; label: string; icon: React.ReactNode }[] = [
     id: "wallet",
     label: "Wallet",
     icon: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
         <rect
           x="1"
           y="3.5"
@@ -33,7 +33,7 @@ const NAV: { id: NavSection; label: string; icon: React.ReactNode }[] = [
     id: "account",
     label: "Account",
     icon: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
         <circle cx="7" cy="5" r="2.2" stroke="currentColor" strokeWidth="1.3" />
         <path
           d="M2 12C2 9.79 4.24 8 7 8C9.76 8 12 9.79 12 12"
@@ -48,7 +48,7 @@ const NAV: { id: NavSection; label: string; icon: React.ReactNode }[] = [
     id: "transactions",
     label: "Transactions",
     icon: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
         <path
           d="M2 4.5H12M9 2L12 4.5L9 7"
           stroke="currentColor"
@@ -70,7 +70,7 @@ const NAV: { id: NavSection; label: string; icon: React.ReactNode }[] = [
     id: "soroban",
     label: "Soroban",
     icon: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
         <path
           d="M4.5 2.5L2 7L4.5 11.5"
           stroke="currentColor"
@@ -98,7 +98,7 @@ const NAV: { id: NavSection; label: string; icon: React.ReactNode }[] = [
     id: "network",
     label: "Network",
     icon: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
         <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.3" />
         <path
           d="M7 2C7 2 9 4.5 9 7C9 9.5 7 12 7 12"
@@ -126,18 +126,45 @@ const NAV: { id: NavSection; label: string; icon: React.ReactNode }[] = [
 interface SidebarProps {
   active: NavSection;
   onNavigate: (s: NavSection) => void;
+  open: boolean;
+  onClose: () => void;
 }
 
-export function Sidebar({ active, onNavigate }: SidebarProps) {
+export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
   const { isConnected } = useSorokit();
 
+  function handleNav(id: NavSection) {
+    onNavigate(id);
+    onClose(); // close on mobile after nav
+  }
+
   return (
-    <aside className="w-[240px] p-2 shrink-0 h-full flex flex-col border-r border-[#2a2a2a] bg-[#141414]">
-      {/* Logo */}
-      <div className="h-14 flex items-center px-5 border-b border-[#2a2a2a] shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-[#5645d4] flex items-center justify-center shrink-0">
-            <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+    <>
+      {/* Mobile overlay */}
+      {open && (
+        <div
+          className="fixed inset-0 z-20 bg-black/60 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Sidebar panel */}
+      <aside
+        className={cn(
+          // base
+          "fixed top-0 left-0 z-30 h-full flex flex-col bg-[#141414] border-r border-[#2a2a2a]",
+          "w-[260px] px-6 py-8",
+          // mobile: slide in/out
+          "transition-transform duration-200 ease-in-out",
+          open ? "translate-x-0" : "-translate-x-full",
+          // desktop: always visible
+          "lg:relative lg:translate-x-0 lg:z-auto",
+        )}
+      >
+        {/* ── Logo ── */}
+        <div className="flex items-center gap-3 px-5 h-[60px] border-b border-[#2a2a2a] shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-[#5645d4] flex items-center justify-center shrink-0">
+            <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
               <path
                 d="M2 6C2 3.79 3.79 2 6 2C8.21 2 10 3.79 10 6C10 8.21 8.21 10 6 10"
                 stroke="white"
@@ -153,50 +180,56 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
               <circle cx="6" cy="6" r="1" fill="white" />
             </svg>
           </div>
-          <span className="text-[14px] font-semibold text-[#ebebeb] tracking-tight">
-            sorokit
-          </span>
+          <div>
+            <p className="text-[14px] font-semibold text-[#ebebeb] leading-none">
+              sorokit
+            </p>
+            <p className="text-[11px] text-[#555] mt-0.5">Stellar Dashboard</p>
+          </div>
         </div>
-      </div>
 
-      {/* Nav items */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3">
-        <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#444]">
-          Navigation
-        </p>
-        <div className="space-y-0.5">
-          {NAV.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer",
-                "text-[13px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#5645d4]",
-                active === item.id
-                  ? "bg-[#1c1c1c] text-[#ebebeb] font-medium"
-                  : "text-[#666666] hover:bg-[#1a1a1a] hover:text-[#cccccc]",
-              )}
-            >
-              <span
+        {/* ── Nav ── */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3">
+          <p className="px-3 mb-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#444]">
+            Menu
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {NAV.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleNav(item.id)}
                 className={cn(
-                  "shrink-0 transition-colors",
-                  active === item.id ? "text-[#5645d4]" : "",
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer",
+                  "text-[13px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#5645d4]",
+                  active === item.id
+                    ? "bg-[#1e1e1e] text-[#ebebeb] font-medium border border-[#333]"
+                    : "text-[#666] hover:bg-[#1a1a1a] hover:text-[#bbb] border border-transparent",
                 )}
               >
-                {item.icon}
-              </span>
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </nav>
+                <span
+                  className={cn(
+                    "shrink-0",
+                    active === item.id ? "text-[#5645d4]" : "",
+                  )}
+                >
+                  {item.icon}
+                </span>
+                {item.label}
+                {active === item.id && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#5645d4]" />
+                )}
+              </button>
+            ))}
+          </div>
+        </nav>
 
-      {/* Connected wallet at bottom */}
-      {isConnected && (
-        <div className="p-3 border-t border-[#2a2a2a] shrink-0">
-          <AccountCardCompact />
-        </div>
-      )}
-    </aside>
+        {/* ── Bottom wallet ── */}
+        {isConnected && (
+          <div className="px-3 pb-4 pt-3 border-t border-[#2a2a2a] shrink-0">
+            <AccountCardCompact />
+          </div>
+        )}
+      </aside>
+    </>
   );
 }

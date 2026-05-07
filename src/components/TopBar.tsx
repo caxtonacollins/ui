@@ -3,29 +3,36 @@ import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { useSorokit } from "@/context/SorokitProvider";
 import type { NavSection } from "@/components/Sidebar";
 
-const LABELS: Record<NavSection, string> = {
-  wallet: "Wallet",
-  account: "Account",
-  transactions: "Transactions",
-  soroban: "Soroban",
-  network: "Network",
+const LABELS: Record<NavSection, { title: string; sub: string }> = {
+  wallet: { title: "Wallet", sub: "Manage your connected wallet" },
+  account: { title: "Account", sub: "Balances and account details" },
+  transactions: { title: "Transactions", sub: "Send payments on Stellar" },
+  soroban: { title: "Soroban", sub: "Invoke smart contracts" },
+  network: { title: "Network", sub: "Switch between networks" },
 };
 
-export function TopBar({ active }: { active: NavSection }) {
+interface TopBarProps {
+  active: NavSection;
+  onMenuToggle: () => void;
+}
+
+export function TopBar({ active, onMenuToggle }: TopBarProps) {
   const { error, clearError } = useSorokit();
+  const { title, sub } = LABELS[active];
 
   return (
     <div className="shrink-0">
+      {/* Error banner */}
       {error && (
-        <div className="flex items-center justify-between gap-3 px-5 py-2 bg-[rgba(239,68,68,0.1)] border-b border-[rgba(239,68,68,0.2)]">
-          <p className="text-[11px] text-[#ef4444]">{error}</p>
+        <div className="flex items-center justify-between gap-4 px-6 py-2.5 bg-[rgba(239,68,68,0.08)] border-b border-[rgba(239,68,68,0.15)]">
+          <p className="text-[12px] text-[#ef4444]">{error}</p>
           <button
             onClick={clearError}
-            className="text-[#ef4444] opacity-60 hover:opacity-100 shrink-0"
+            className="text-[#ef4444] opacity-50 hover:opacity-100 shrink-0 transition-opacity"
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path
-                d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5"
+                d="M2 2L10 10M10 2L2 10"
                 stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
@@ -34,10 +41,31 @@ export function TopBar({ active }: { active: NavSection }) {
           </button>
         </div>
       )}
-      <header className="h-14 flex items-center justify-between px-6 border-b border-[#2a2a2a] bg-[#141414] shrink-0">
-        <span className="text-[14px] font-semibold text-[#ebebeb]">
-          {LABELS[active]}
-        </span>
+
+      {/* Main bar */}
+      <header className="flex items-center justify-between px-6 h-[60px] border-b border-[#2a2a2a] bg-[#141414]">
+        <div className="flex items-center gap-3">
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={onMenuToggle}
+            className="lg:hidden flex flex-col gap-1 p-1.5 rounded-md hover:bg-[#1c1c1c] transition-colors"
+            aria-label="Open menu"
+          >
+            <span className="w-4 h-px bg-[#999] block" />
+            <span className="w-4 h-px bg-[#999] block" />
+            <span className="w-4 h-px bg-[#999] block" />
+          </button>
+
+          <div>
+            <h1 className="text-[15px] font-semibold text-[#ebebeb] leading-none">
+              {title}
+            </h1>
+            <p className="text-[11px] text-[#555] mt-0.5 hidden sm:block">
+              {sub}
+            </p>
+          </div>
+        </div>
+
         <div className="flex items-center gap-2.5">
           <NetworkSwitcher />
           <WalletConnectButton />

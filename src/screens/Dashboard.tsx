@@ -17,14 +17,29 @@ const SCREENS: Record<NavSection, React.ReactNode> = {
 
 export function Dashboard() {
   const [active, setActive] = useState<NavSection>("wallet");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0d0d0d]">
-      <Sidebar active={active} onNavigate={setActive} />
+      <Sidebar
+        active={active}
+        onNavigate={setActive}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <TopBar active={active} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-8 py-8">{SCREENS[active]}</div>
+        <TopBar
+          active={active}
+          onMenuToggle={() => setSidebarOpen((o) => !o)}
+        />
+
+        <main className="flex-1 overflow-y-auto bg-[#0d0d0d]">
+          {/* Centered content with max-width and generous padding */}
+          <div className="w-full max-w-[720px] mx-auto px-6 py-8 sm:px-8 sm:py-10">
+            {SCREENS[active]}
+          </div>
         </main>
       </div>
     </div>

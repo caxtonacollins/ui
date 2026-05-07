@@ -1,13 +1,5 @@
 import { useState } from "react";
 import { useSorokit } from "@/context/SorokitProvider";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -62,75 +54,80 @@ export function SorobanPanel() {
     }
   }
 
-  if (!isConnected) {
-    return (
-      <Card>
-        <CardContent>
-          <p className="text-[11px] text-[#555555] text-center py-8">
-            Connect your wallet to invoke contracts
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Contract Invoke</CardTitle>
-          <Badge variant="teal">Soroban</Badge>
+    <div className="rounded-xl border border-[#2a2a2a] bg-[#141414] overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
+        <div>
+          <h3 className="text-[14px] font-semibold text-[#ebebeb]">
+            Contract Invoke
+          </h3>
+          <p className="text-[12px] text-[#555] mt-0.5">
+            Call a Soroban smart contract method
+          </p>
         </div>
-        <CardDescription>Call a Soroban smart contract method</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={invoke} className="space-y-4">
-          <Input
-            label="Contract ID"
-            placeholder="C..."
-            value={contractId}
-            onChange={(e) => setContractId(e.target.value)}
-            disabled={state === "loading"}
-          />
-          <Input
-            label="Method"
-            placeholder="transfer, balance, mint…"
-            value={method}
-            onChange={(e) => setMethod(e.target.value)}
-            disabled={state === "loading"}
-          />
-          <div className="flex flex-col gap-2">
-            <label className="text-[12px] font-medium text-[#999999]">
-              Arguments (JSON array)
-            </label>
-            <textarea
-              placeholder='["arg1", 42]'
-              value={args}
-              onChange={(e) => setArgs(e.target.value)}
-              disabled={state === "loading"}
-              rows={3}
-              className="w-full rounded-lg border border-[#2a2a2a] bg-[#1c1c1c] px-3.5 py-2.5 text-[12px] font-mono text-[#ebebeb] placeholder:text-[#444444] outline-none focus:border-[#3d3d3d] focus:ring-1 focus:ring-[rgba(86,69,212,0.3)] transition-colors resize-none disabled:opacity-40"
-            />
-          </div>
+        <Badge variant="teal">Soroban</Badge>
+      </div>
 
-          {state === "success" && result !== null && (
-            <div className="rounded-md bg-[rgba(34,197,94,0.05)] border border-[rgba(34,197,94,0.15)] p-3 space-y-1.5">
-              <Badge variant="success" dot>
-                Result
-              </Badge>
-              <pre className="text-[10px] font-mono text-[#999999] whitespace-pre-wrap break-all mt-1">
-                {JSON.stringify(result, null, 2)}
-              </pre>
+      {/* Body */}
+      <div className="px-6 py-6">
+        {!isConnected ? (
+          <div className="flex flex-col items-center gap-3 py-8">
+            <p className="text-[13px] text-[#555]">
+              Connect your wallet to invoke contracts
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={invoke} className="flex flex-col gap-5">
+            <Input
+              label="Contract ID"
+              placeholder="C..."
+              value={contractId}
+              onChange={(e) => setContractId(e.target.value)}
+              disabled={state === "loading"}
+            />
+            <Input
+              label="Method"
+              placeholder="transfer, balance, mint…"
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              disabled={state === "loading"}
+            />
+            <div className="flex flex-col gap-2">
+              <label className="text-[12px] font-medium text-[#999]">
+                Arguments (JSON array)
+              </label>
+              <textarea
+                placeholder='["arg1", 42]'
+                value={args}
+                onChange={(e) => setArgs(e.target.value)}
+                disabled={state === "loading"}
+                rows={3}
+                className="w-full rounded-lg border border-[#2a2a2a] bg-[#1c1c1c] px-4 py-3 text-[13px] font-mono text-[#ebebeb] placeholder:text-[#444] outline-none focus:border-[#3d3d3d] focus:ring-1 focus:ring-[rgba(86,69,212,0.3)] transition-colors resize-none disabled:opacity-40"
+              />
             </div>
-          )}
-          {state === "error" && error && (
-            <div className="rounded-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)] p-3">
-              <p className="text-[11px] text-[#ef4444]">{error}</p>
-            </div>
-          )}
-        </form>
-      </CardContent>
-      <CardFooter>
+
+            {state === "success" && result !== null && (
+              <div className="rounded-lg bg-[rgba(34,197,94,0.05)] border border-[rgba(34,197,94,0.15)] px-5 py-4 flex flex-col gap-3">
+                <Badge variant="success" dot>
+                  Result
+                </Badge>
+                <pre className="text-[12px] font-mono text-[#aaa] whitespace-pre-wrap break-all">
+                  {JSON.stringify(result, null, 2)}
+                </pre>
+              </div>
+            )}
+            {state === "error" && error && (
+              <div className="rounded-lg bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.15)] px-5 py-4">
+                <p className="text-[13px] text-[#ef4444]">{error}</p>
+              </div>
+            )}
+          </form>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="px-6 py-4 border-t border-[#2a2a2a] flex items-center gap-3">
         {(state === "success" || state === "error") && (
           <Button
             variant="ghost"
@@ -145,14 +142,14 @@ export function SorobanPanel() {
           </Button>
         )}
         <Button
-          size="sm"
+          size="md"
           loading={state === "loading"}
           disabled={!canInvoke}
           onClick={invoke as unknown as React.MouseEventHandler}
         >
-          {state === "loading" ? "Invoking…" : "Invoke"}
+          {state === "loading" ? "Invoking…" : "Invoke Contract"}
         </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
