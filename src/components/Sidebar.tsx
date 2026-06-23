@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { AccountCardCompact } from "@/components/AccountCard";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getClient } from "@/lib/client";
 import { cn } from "@/lib/utils";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -23,7 +23,7 @@ export function FeeEstimator({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error: err } = await getClient().transaction.estimateFee();
@@ -36,15 +36,25 @@ export function FeeEstimator({
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    load();
+    const timerId = window.setTimeout(() => {
+      void load();
+    }, 0);
     if (refreshInterval > 0) {
-      const id = setInterval(load, refreshInterval);
-      return () => clearInterval(id);
+      const id = setInterval(() => {
+        void load();
+      }, refreshInterval);
+      return () => {
+        window.clearTimeout(timerId);
+        clearInterval(id);
+      };
     }
-  }, [refreshInterval]);
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [load, refreshInterval]);
 
   return (
     <div
@@ -61,7 +71,7 @@ export function FeeEstimator({
           </p>
         </div>
         <button
-          onClick={load}
+          onClick={() => void load()}
           disabled={loading}
           className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors disabled:opacity-40"
           title="Refresh"

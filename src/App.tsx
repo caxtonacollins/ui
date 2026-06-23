@@ -1,4 +1,4 @@
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { ConnectScreen } from "@/screens/ConnectScreen";
 import { Dashboard } from "@/screens/Dashboard";
 

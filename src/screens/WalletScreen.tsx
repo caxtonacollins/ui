@@ -1,4 +1,4 @@
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { AccountCard } from "@/components/AccountCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";

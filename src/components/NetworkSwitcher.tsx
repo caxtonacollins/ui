@@ -1,5 +1,5 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { cn } from "@/lib/utils";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowDown01Icon, Tick01Icon } from "@hugeicons/core-free-icons";

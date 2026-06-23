@@ -1,6 +1,6 @@
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import type { NavSection } from "@/components/Sidebar";

@@ -1,6 +1,6 @@
 import { AccountCard } from "@/components/AccountCard";
 import { BalanceList } from "@/components/BalanceList";
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { User02Icon } from "@hugeicons/core-free-icons";
 

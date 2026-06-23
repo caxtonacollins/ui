@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -76,19 +76,31 @@ export function TransactionHistory() {
 
   useEffect(() => {
     if (!address) return;
-    setLoading(true);
-    getClient()
-      .transaction.getHistory(address, page, PAGE_SIZE)
-      .then(({ data, error: err, total: t }) => {
-        if (err) {
-          setError(err);
-          return;
-        }
-        setTxs(data ?? []);
-        setTotal(t);
-        setError(null);
-      })
-      .finally(() => setLoading(false));
+
+    let active = true;
+    const timerId = window.setTimeout(() => {
+      setLoading(true);
+      getClient()
+        .transaction.getHistory(address, page, PAGE_SIZE)
+        .then(({ data, error: err, total: t }) => {
+          if (!active) return;
+          if (err) {
+            setError(err);
+            return;
+          }
+          setTxs(data ?? []);
+          setTotal(t);
+          setError(null);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timerId);
+    };
   }, [address, page]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);

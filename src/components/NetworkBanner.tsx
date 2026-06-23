@@ -1,4 +1,4 @@
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { cn } from "@/lib/utils";
 
 const CONFIG = {

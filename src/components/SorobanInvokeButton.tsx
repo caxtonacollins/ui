@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useSorokit } from "@/context/SorokitProvider";
+import { useRef, useState } from "react";
+import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import type { InvokeParams } from "@/lib/client";
 
 type InvokeState = "idle" | "loading" | "success" | "error";
@@ -38,9 +38,12 @@ export function SorobanInvokeButton({
   const [state, setState] = useState<InvokeState>("idle");
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
+  const isInvokingRef = useRef(false);
 
   async function invoke() {
-    if (!isConnected) return;
+    if (!isConnected || isInvokingRef.current) return;
+
+    isInvokingRef.current = true;
     setState("loading");
     setResult(null);
     setError(null);
@@ -49,19 +52,23 @@ export function SorobanInvokeButton({
       const { data, error: err } =
         await getClient().soroban.invokeContract(params);
       if (err) {
-        setError(err);
+        const message = friendlyError(err);
+        setError(message);
         setState("error");
-        onError?.(err);
+        onError?.(message);
         return;
       }
       setResult(data);
       setState("success");
       onSuccess?.(data);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
+      const rawMessage = e instanceof Error ? e.message : "Unknown error";
+      const msg = friendlyError(rawMessage);
       setError(msg);
       setState("error");
       onError?.(msg);
+    } finally {
+      isInvokingRef.current = false;
     }
   }
 
@@ -74,7 +81,7 @@ export function SorobanInvokeButton({
           variant={variant}
           size={size}
           loading={state === "loading"}
-          disabled={!isConnected}
+          disabled={!isConnected || state === "loading"}
           onClick={invoke}
           title={!isConnected ? "Connect wallet to invoke" : undefined}
         >
@@ -89,6 +96,8 @@ export function SorobanInvokeButton({
         {state === "error" && <Badge variant="error">Failed</Badge>}
         {(state === "success" || state === "error") && (
           <button
+            type="button"
+            aria-label="Reset invocation result"
             onClick={() => {
               setState("idle");
               setResult(null);

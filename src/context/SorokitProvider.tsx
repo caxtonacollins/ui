@@ -1,47 +1,9 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-} from "react";
+import { useEffect, useState, useCallback } from "react";
+import type { AccountData, Balance, NetworkInfo, NetworkName } from "@/lib/client";
 import {
-  type SorokitClient,
-  type NetworkInfo,
-  type Balance,
-  type AccountData,
-} from "@/lib/client";
-
-/* ─── Context shape ──────────────────────────────────────── */
-interface SorokitState {
-  // Wallet
-  address: string | null;
-  isConnected: boolean;
-  isConnecting: boolean;
-  connectWallet: () => Promise<void>;
-  disconnectWallet: () => Promise<void>;
-
-  // Account
-  account: AccountData | null;
-  balances: Balance[];
-  isLoadingAccount: boolean;
-
-  // Network
-  network: NetworkInfo | null;
-  switchNetwork: (name: import("@/lib/client").NetworkName) => Promise<void>;
-
-  // Errors
-  error: string | null;
-  clearError: () => void;
-}
-
-const SorokitContext = createContext<SorokitState | null>(null);
-
-/* ─── Provider ───────────────────────────────────────────── */
-interface SorokitProviderProps {
-  client: SorokitClient;
-  children: React.ReactNode;
-}
+  SorokitContext,
+  type SorokitProviderProps,
+} from "./sorokit-context";
 
 export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
@@ -54,31 +16,49 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
 
   // Load network on mount
   useEffect(() => {
-    client.network.getNetwork().then(({ data, error }) => {
-      if (data) setNetwork(data);
-      if (error) setError(error);
-    });
+    let active = true;
+
+    const timerId = window.setTimeout(() => {
+      client.network.getNetwork().then(({ data, error: nextError }) => {
+        if (!active) return;
+        if (data) setNetwork(data);
+        if (nextError) setError(nextError);
+      });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timerId);
+    };
   }, [client]);
 
   // Load account when address changes
   useEffect(() => {
-    if (!address) {
-      setAccount(null);
-      setBalances([]);
-      return;
-    }
-    setIsLoadingAccount(true);
-    Promise.all([
-      client.account.getAccount(address),
-      client.account.getBalances(address),
-    ])
-      .then(([accountRes, balancesRes]) => {
-        if (accountRes.data) setAccount(accountRes.data);
-        if (accountRes.error) setError(accountRes.error);
-        if (balancesRes.data) setBalances(balancesRes.data);
-        if (balancesRes.error) setError(balancesRes.error);
-      })
-      .finally(() => setIsLoadingAccount(false));
+    if (!address) return;
+
+    let active = true;
+    const timerId = window.setTimeout(() => {
+      setIsLoadingAccount(true);
+      Promise.all([
+        client.account.getAccount(address),
+        client.account.getBalances(address),
+      ])
+        .then(([accountRes, balancesRes]) => {
+          if (!active) return;
+          if (accountRes.data) setAccount(accountRes.data);
+          if (accountRes.error) setError(accountRes.error);
+          if (balancesRes.data) setBalances(balancesRes.data);
+          if (balancesRes.error) setError(balancesRes.error);
+        })
+        .finally(() => {
+          if (active) setIsLoadingAccount(false);
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timerId);
+    };
   }, [address, client]);
 
   const connectWallet = useCallback(async () => {
@@ -104,7 +84,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
   }, [client]);
 
   const switchNetwork = useCallback(
-    async (name: import("@/lib/client").NetworkName) => {
+    async (name: NetworkName) => {
       const { data, error } = await client.network.switchNetwork(name);
       if (data) setNetwork(data);
       if (error) setError(error);
@@ -134,14 +114,4 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       {children}
     </SorokitContext.Provider>
   );
-}
-
-/* ─── Hook ───────────────────────────────────────────────── */
-export function useSorokit(): SorokitState {
-  const ctx = useContext(SorokitContext);
-  if (!ctx)
-    throw new Error(
-      "[sorokit-ui] useSorokit must be used inside <SorokitProvider>",
-    );
-  return ctx;
 }

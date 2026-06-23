@@ -1,4 +1,4 @@
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { Button } from "@/components/ui/Button";
 import { truncateAddress } from "@/lib/utils";
 

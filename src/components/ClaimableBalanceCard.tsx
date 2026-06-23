@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -68,17 +68,29 @@ export function ClaimableBalanceCard() {
 
   useEffect(() => {
     if (!address) return;
-    setLoading(true);
-    getClient()
-      .account.getClaimableBalances(address)
-      .then(({ data, error: err }) => {
-        if (err) {
-          setError(err);
-          return;
-        }
-        setBalances(data ?? []);
-      })
-      .finally(() => setLoading(false));
+
+    let active = true;
+    const timerId = window.setTimeout(() => {
+      setLoading(true);
+      getClient()
+        .account.getClaimableBalances(address)
+        .then(({ data, error: err }) => {
+          if (!active) return;
+          if (err) {
+            setError(err);
+            return;
+          }
+          setBalances(data ?? []);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timerId);
+    };
   }, [address]);
 
   return (

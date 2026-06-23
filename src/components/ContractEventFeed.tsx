@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getClient } from "@/lib/client";
 import { Badge } from "@/components/ui/Badge";
 import { truncateAddress } from "@/lib/utils";
@@ -79,7 +79,7 @@ export function ContractEventFeed({
   const [live, setLive] = useState(pollInterval > 0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!contractId.trim()) return;
     setLoading(true);
     try {
@@ -96,22 +96,30 @@ export function ContractEventFeed({
     } finally {
       setLoading(false);
     }
-  }
+  }, [contractId, limit]);
 
   useEffect(() => {
-    load();
-  }, [contractId]);
+    const timerId = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [load]);
 
   useEffect(() => {
     if (live && pollInterval > 0) {
-      intervalRef.current = setInterval(load, pollInterval);
+      intervalRef.current = setInterval(() => {
+        void load();
+      }, pollInterval);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [live, pollInterval]);
+  }, [live, pollInterval, load]);
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
@@ -137,7 +145,7 @@ export function ContractEventFeed({
             </button>
           )}
           <button
-            onClick={load}
+            onClick={() => void load()}
             disabled={loading}
             className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors disabled:opacity-40"
           >

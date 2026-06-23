@@ -6,6 +6,7 @@ import { SorokitProvider } from "@/context/SorokitProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   initClient,
+  type InvokeParams,
   type SorokitClient as LocalSorokitClient,
   type NetworkInfo,
   type NetworkName,
@@ -46,10 +47,10 @@ function createClientAdapter(
       },
     },
     account: {
-      getAccount: async (_address: string) => {
+      getAccount: async (address: string) => {
         // Mock account data
         const mockAccount = {
-          address: _address,
+          address,
           sequence: "174792435",
           subentryCount: 3,
         };
@@ -59,7 +60,7 @@ function createClientAdapter(
           status: "success",
         };
       },
-      getBalances: async (_address: string) => {
+      getBalances: async () => {
         // Mock balances
         const mockBalances = [
           {
@@ -86,7 +87,7 @@ function createClientAdapter(
         ];
         return { data: mockBalances, error: null };
       },
-      getClaimableBalances: async (_address: string) => {
+      getClaimableBalances: async (address: string) => {
         // Mock claimable balances
         const mockClaimable = [
           {
@@ -94,12 +95,12 @@ function createClientAdapter(
             asset: "XLM",
             amount: "25.0000000",
             sponsor: "GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGZWM9CQJUQE3QLQZJQ",
-            claimants: [{ destination: _address, predicate: null }],
+            claimants: [{ destination: address, predicate: null }],
           },
         ];
         return { data: mockClaimable, error: null };
       },
-      claimBalance: async (_balanceId: string) => {
+      claimBalance: async () => {
         // Mock claim balance
         const mockTxResult = {
           hash: "a1b2c3d4e5f678901234567890123456789012345678901234567890123456",
@@ -110,7 +111,7 @@ function createClientAdapter(
       },
     },
     transaction: {
-      submit: async (_tx: unknown) => {
+      submit: async () => {
         // Mock transaction submission
         const mockTxResult = {
           hash: "a1b2c3d4e5f678901234567890123456789012345678901234567890123456",
@@ -123,11 +124,11 @@ function createClientAdapter(
           status: "success",
         };
       },
-      getStatus: async (_txHash: string) => {
+      getStatus: async () => {
         // Mock transaction status
         return { data: "success", error: null };
       },
-      getHistory: async (_address: string, _page?: number, _limit?: number) => {
+      getHistory: async () => {
         // Mock transaction history
         const mockTransactions = [
           {
@@ -163,11 +164,15 @@ function createClientAdapter(
       },
     },
     soroban: {
-      invokeContract: async (_params: any) => {
-        // TODO: Implement contract invocation
-        return { data: null, error: "Not implemented", status: "error" };
+      invokeContract: async (params: InvokeParams) => {
+        void params;
+        return {
+          data: null,
+          error: "Not implemented",
+          status: "error",
+        };
       },
-      getEvents: async (_contractId: string, _limit?: number) => {
+      getEvents: async () => {
         // TODO: Implement get contract events
         return { data: null, error: null };
       },
@@ -184,7 +189,7 @@ function createClientAdapter(
         };
         return { data: networkInfo, error: null };
       },
-      switchNetwork: async (_network: NetworkName) => {
+      switchNetwork: async () => {
         // TODO: Implement network switching
         // For now, return current network
         const config = coreClient.network.getConfig();

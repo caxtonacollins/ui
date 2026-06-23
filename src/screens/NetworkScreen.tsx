@@ -1,4 +1,4 @@
-import { useSorokit } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import type { NetworkName } from "@/lib/client";

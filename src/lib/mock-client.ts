@@ -144,7 +144,7 @@ export function createMockClient(): SorokitClient {
         await delay(700);
         return { data: MOCK_CLAIMABLE, error: null };
       },
-      claimBalance: async (_id) => {
+      claimBalance: async () => {
         await delay(1800);
         return {
           data: { hash: randHex(64), ledger: 48291036, successful: true },
