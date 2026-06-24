@@ -5,7 +5,7 @@ const CONFIG = {
   mainnet: {
     label: "Mainnet",
     dot: "bg-green",
-    bar: "bg-[rgba(34,197,94,0.06)] border-b border-[rgba(34,197,94,0.15)]",
+    bar: "bg-success-dim-muted border-b border-success-dim",
     text: "text-green",
     show: false,
   },

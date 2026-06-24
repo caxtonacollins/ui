@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import type { AccountData, Balance, NetworkInfo, NetworkName } from "@/lib/client";
 import {
   SorokitContext,
@@ -94,23 +94,38 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const value = useMemo(
+    () => ({
+      address,
+      isConnected: !!address,
+      isConnecting,
+      connectWallet,
+      disconnectWallet,
+      account,
+      balances,
+      isLoadingAccount,
+      network,
+      switchNetwork,
+      error,
+      clearError,
+    }),
+    [
+      address,
+      isConnecting,
+      connectWallet,
+      disconnectWallet,
+      account,
+      balances,
+      isLoadingAccount,
+      network,
+      switchNetwork,
+      error,
+      clearError,
+    ],
+  );
+
   return (
-    <SorokitContext.Provider
-      value={{
-        address,
-        isConnected: !!address,
-        isConnecting,
-        connectWallet,
-        disconnectWallet,
-        account,
-        balances,
-        isLoadingAccount,
-        network,
-        switchNetwork,
-        error,
-        clearError,
-      }}
-    >
+    <SorokitContext.Provider value={value}>
       {children}
     </SorokitContext.Provider>
   );

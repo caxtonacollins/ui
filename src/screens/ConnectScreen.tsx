@@ -51,7 +51,7 @@ export function ConnectScreen() {
           </div>
           <div className="px-5 py-5 flex flex-col gap-4">
             {error && (
-              <div className="flex items-start justify-between gap-3 rounded-lg bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.15)] px-4 py-3">
+              <div className="flex items-start justify-between gap-3 rounded-lg bg-error-dim-muted border border-error-dim px-4 py-3">
                 <p className="text-[13px] text-red">{error}</p>
                 <button
                   onClick={clearError}

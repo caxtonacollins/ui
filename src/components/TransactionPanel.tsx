@@ -31,7 +31,6 @@ export function TransactionPanel() {
   const canSubmit =
     isConnected &&
     isDestValid &&
-    !isSelfPayment &&
     amount.trim() !== "" &&
     isAmountValid;
 
@@ -95,12 +94,13 @@ export function TransactionPanel() {
         ) : state === "success" && result ? (
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[rgba(34,197,94,0.1)] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-success-dim flex items-center justify-center shrink-0">
                 <HugeiconsIcon
                   icon={CheckmarkCircle01Icon}
                   size={18}
-                  color="#22c55e"
+                  color="currentColor"
                   strokeWidth={1.5}
+                  className="text-green"
                 />
               </div>
               <div>
@@ -126,12 +126,13 @@ export function TransactionPanel() {
           </div>
         ) : state === "error" ? (
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-[rgba(239,68,68,0.1)] flex items-center justify-center shrink-0 mt-0.5">
+            <div className="w-9 h-9 rounded-full bg-error-dim flex items-center justify-center shrink-0 mt-0.5">
               <HugeiconsIcon
                 icon={AlertCircleIcon}
                 size={18}
-                color="#ef4444"
+                color="currentColor"
                 strokeWidth={1.5}
+                className="text-red"
               />
             </div>
             <div>
@@ -156,8 +157,8 @@ export function TransactionPanel() {
                   ? !isDestValid
                     ? "Invalid Stellar address"
                     : isSelfPayment
-                    ? "Cannot send to self"
-                    : undefined
+                      ? "Destination is the same as your wallet address"
+                      : undefined
                   : undefined
               }
               disabled={state === "loading"}
@@ -178,10 +179,10 @@ export function TransactionPanel() {
                   ? amount.trim() === ""
                     ? "Amount is required"
                     : isNaN(parsedAmount) || parsedAmount <= 0
-                    ? "Amount must be greater than 0"
-                    : parsedAmount < 0.0000001
-                    ? "Amount must be at least 0.0000001 XLM"
-                    : undefined
+                      ? "Amount must be greater than 0"
+                      : parsedAmount < 0.0000001
+                        ? "Minimum amount is 0.0000001 XLM"
+                        : undefined
                   : undefined
               }
               disabled={state === "loading"}

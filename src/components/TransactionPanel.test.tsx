@@ -105,7 +105,7 @@ describe("TransactionPanel", () => {
     // Type valid address
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(destInput, { target: { value: validDest } });
-    expect(screen.queryByText("Invalid Stellar address")).not.toBeInTheDocument();
+    expect(screen.getByText("Invalid Stellar address")).toHaveClass("opacity-0");
     expect(submitBtn).not.toBeDisabled();
   });
 
@@ -131,7 +131,7 @@ describe("TransactionPanel", () => {
     expect(screen.getByText("Wallet not connected")).toBeInTheDocument();
   });
 
-  it("shows self-payment warning error if destination is equal to source address", async () => {
+  it("shows self-payment warning when destination equals source address", async () => {
     (useSorokit as any).mockReturnValue({
       address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
       isConnected: true,
@@ -143,13 +143,15 @@ describe("TransactionPanel", () => {
     const amountInput = screen.getByLabelText("Amount (XLM)");
     const submitBtn = screen.getByRole("button", { name: "Send Payment" });
 
-    // Type source address as destination address
-    fireEvent.change(destInput, { target: { value: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" } });
+    fireEvent.change(destInput, {
+      target: { value: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" },
+    });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
-    // Self-payment error should be displayed
-    expect(screen.getByText("Cannot send to self")).toBeInTheDocument();
-    expect(submitBtn).toBeDisabled();
+    expect(
+      screen.getByText("Destination is the same as your wallet address"),
+    ).toBeInTheDocument();
+    expect(submitBtn).not.toBeDisabled();
   });
 
   it("shows error for amount below minimum threshold", async () => {
@@ -165,12 +167,14 @@ describe("TransactionPanel", () => {
     // Type amount below 0.0000001
     fireEvent.change(amountInput, { target: { value: "0.00000005" } });
 
-    expect(screen.getByText("Amount must be at least 0.0000001 XLM")).toBeInTheDocument();
+    expect(screen.getByText("Minimum amount is 0.0000001 XLM")).toBeInTheDocument();
     expect(submitBtn).toBeDisabled();
 
     // Type valid amount
     fireEvent.change(amountInput, { target: { value: "0.0000001" } });
-    expect(screen.queryByText("Amount must be at least 0.0000001 XLM")).not.toBeInTheDocument();
+    expect(screen.getByText("Minimum amount is 0.0000001 XLM")).toHaveClass(
+      "opacity-0",
+    );
     expect(submitBtn).not.toBeDisabled();
   });
 });
