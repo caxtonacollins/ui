@@ -16,15 +16,7 @@ import {
   type InvokeParams,
 } from "./components/index";
 
-import type {
-  AccountData,
-  Balance,
-  Transaction,
-  ClaimableBalance,
-  ContractEvent,
-  NetworkInfo,
-  InvokeParams,
-} from "./components/index";
+
 
 // Dummy usage to prevent unused warnings if strictly checked
 console.log({

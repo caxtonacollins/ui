@@ -79,7 +79,7 @@ export function QRCode({
           light: bg,
         },
       },
-      (error) => {
+      (error: Error | null | undefined) => {
         if (error && active) {
           console.error("Failed to render QR Code:", error);
           setRenderError(true);
