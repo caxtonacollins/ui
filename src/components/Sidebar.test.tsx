@@ -44,20 +44,22 @@ describe("Sidebar", () => {
     expect(onNavigate).toHaveBeenCalledWith("network");
   });
 
-  it("applies active styles to the current nav item", () => {
+  it("applies active styles and aria-current='page' to the current nav item", () => {
     render(
       <Sidebar active="network" onNavigate={onNavigate} open={false} onClose={onClose} />,
     );
     const networkBtn = screen.getByRole("button", { name: /network/i });
     expect(networkBtn.className).toContain("bg-surface-3");
+    expect(networkBtn).toHaveAttribute("aria-current", "page");
   });
 
-  it("does not apply active styles to inactive nav items", () => {
+  it("does not apply active styles or aria-current to inactive nav items", () => {
     render(
       <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
     );
     const accountBtn = screen.getByRole("button", { name: /account/i });
     expect(accountBtn.className).not.toContain("bg-surface-3");
+    expect(accountBtn).not.toHaveAttribute("aria-current");
   });
 
   it("calls onClose when the mobile backdrop is clicked", () => {

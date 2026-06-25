@@ -101,6 +101,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
               <button
                 key={item.id}
                 onClick={() => handleNav(item.id)}
+                aria-current={active === item.id ? "page" : undefined}
                 className={cn(
                   "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer overflow-hidden",
                   "text-[13px] focus-visible:outline-none mb-0.5",
