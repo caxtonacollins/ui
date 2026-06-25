@@ -54,4 +54,14 @@ describe("AddressDisplay", () => {
     expect(copyBtn.className).toContain("opacity-50");
     expect(copyBtn.className).not.toContain("opacity-0");
   });
+
+  it("shows the full address when showFull is true", () => {
+    render(<AddressDisplay address={address} showFull />);
+    expect(screen.getByText(address)).toBeInTheDocument();
+  });
+
+  it("renders a label above the address when label prop is provided", () => {
+    render(<AddressDisplay address={address} label="Destination" />);
+    expect(screen.getByText("Destination")).toBeInTheDocument();
+  });
 });

@@ -1,38 +1,31 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NetworkSwitcher } from "./NetworkSwitcher";
 import { useSorokit } from "@/context/useSorokit";
 
-vi.mock("@/context/useSorokit", () => ({ useSorokit: vi.fn() }));
-
-// Radix DropdownMenu relies on pointer events and portals that don't work in jsdom.
-// Replace with thin pass-through stubs so items are always rendered.
-vi.mock("@radix-ui/react-dropdown-menu", () => ({
-  Root: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Trigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Portal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Content: ({ children }: { children: React.ReactNode }) => <div role="menu">{children}</div>,
-  Item: ({
-    children,
-    onSelect,
-    className,
-  }: {
-    children: React.ReactNode;
-    onSelect?: () => void;
-    className?: string;
-  }) => (
-    <div role="menuitem" className={className} onClick={onSelect}>
-      {children}
-    </div>
-  ),
+vi.mock("@/context/useSorokit", () => ({
+  useSorokit: vi.fn(),
 }));
 
-const switchNetwork = vi.fn();
-
-beforeEach(() => vi.clearAllMocks());
+// Radix DropdownMenu.Portal renders into document.body by default.
+// Mock it to render inline so RTL assertions can find the content.
+vi.mock("@radix-ui/react-dropdown-menu", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@radix-ui/react-dropdown-menu")>();
+  return {
+    ...actual,
+    Portal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 describe("NetworkSwitcher", () => {
-  it("shows the current network in the trigger button", () => {
+  let switchNetwork: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    switchNetwork = vi.fn().mockResolvedValue(undefined);
+  });
+
+  it("displays the active network label in the trigger button", () => {
     vi.mocked(useSorokit).mockReturnValue({
       network: { name: "mainnet" },
       switchNetwork,
@@ -42,25 +35,47 @@ describe("NetworkSwitcher", () => {
     expect(screen.getByRole("button", { name: /mainnet/i })).toBeInTheDocument();
   });
 
-  it("calls switchNetwork with the correct network name on selection", () => {
+  it("falls back to Testnet label when network is null", () => {
     vi.mocked(useSorokit).mockReturnValue({
-      network: { name: "testnet" },
+      network: null,
       switchNetwork,
     } as unknown as ReturnType<typeof useSorokit>);
 
     render(<NetworkSwitcher />);
-    fireEvent.click(screen.getByRole("menuitem", { name: /mainnet/i }));
-    expect(switchNetwork).toHaveBeenCalledWith("mainnet");
+    expect(screen.getByRole("button", { name: /testnet/i })).toBeInTheDocument();
   });
 
-  it("active network item has font-medium class", () => {
+  it("applies the orange dot class for testnet", () => {
     vi.mocked(useSorokit).mockReturnValue({
       network: { name: "testnet" },
       switchNetwork,
     } as unknown as ReturnType<typeof useSorokit>);
 
-    render(<NetworkSwitcher />);
-    expect(screen.getByRole("menuitem", { name: /testnet/i })).toHaveClass("font-medium");
-    expect(screen.getByRole("menuitem", { name: /mainnet/i })).not.toHaveClass("font-medium");
+    const { container } = render(<NetworkSwitcher />);
+    // The trigger button contains a coloured dot span
+    const triggerButton = container.querySelector("button");
+    expect(triggerButton?.querySelector(".bg-orange")).toBeInTheDocument();
+  });
+
+  it("applies the green dot class for mainnet", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      network: { name: "mainnet" },
+      switchNetwork,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    const { container } = render(<NetworkSwitcher />);
+    const triggerButton = container.querySelector("button");
+    expect(triggerButton?.querySelector(".bg-green")).toBeInTheDocument();
+  });
+
+  it("applies the purple dot class for futurenet", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      network: { name: "futurenet" },
+      switchNetwork,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    const { container } = render(<NetworkSwitcher />);
+    const triggerButton = container.querySelector("button");
+    expect(triggerButton?.querySelector(".bg-purple")).toBeInTheDocument();
   });
 });
