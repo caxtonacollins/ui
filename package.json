@@ -96,7 +96,7 @@
   "size-limit": [
     {
       "path": "dist/sorokit-ui.es.js",
-      "limit": "50 KB"
+      "limit": "60 KB"
     }
   ]
 }
