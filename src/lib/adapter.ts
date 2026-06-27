@@ -1,7 +1,7 @@
-import { SorobanClient } from '@stellar/js-sdk';
+// No import needed for SorobanClient as we'll use any for the property
+
 
 export interface ClientAdapterConfig {
-  walletAdapter?: unknown; // Freighter, xBull, Albedo
   network?: 'testnet' | 'public';
 }
 
@@ -16,12 +16,11 @@ export interface AdapterResponse<T> {
  * Supports Freighter, xBull, Albedo, and testnet mocking
  */
 export class ClientAdapter {
-  private soroban: SorobanClient | null = null;
-  private walletAdapter: unknown = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private soroban: any = null;
   private userAddress: string | null = null;
 
-  constructor(config: ClientAdapterConfig = {}) {
-    this.walletAdapter = config.walletAdapter;
+  constructor() {
   }
 
   /**
@@ -211,6 +210,6 @@ export class ClientAdapter {
 }
 
 // Factory for creating adapters
-export function createClientAdapter(config?: ClientAdapterConfig): ClientAdapter {
-  return new ClientAdapter(config);
+export function createClientAdapter(): ClientAdapter {
+  return new ClientAdapter();
 }
