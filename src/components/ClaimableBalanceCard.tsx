@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
+import { getClient, hasClient } from "@/lib/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { truncateAddress } from "@/lib/utils";
@@ -18,6 +18,7 @@ function BalanceRow({ cb }: { cb: ClaimableBalance }) {
     setClaiming(true);
     setClaimError(null);
     try {
+      if (!hasClient()) { setError("[sorokit-ui] Client not initialized."); return; }
       const { error } = await getClient().account.claimBalance(cb.id);
       if (!error) {
         setClaimed(true);
@@ -86,6 +87,7 @@ export function ClaimableBalanceCard() {
     let active = true;
     const timerId = window.setTimeout(() => {
       setLoading(true);
+      if (!hasClient()) { setClaimError("[sorokit-ui] Client not initialized."); return; }
       getClient()
         .account.getClaimableBalances(address)
         .then(({ data, error: err }) => {

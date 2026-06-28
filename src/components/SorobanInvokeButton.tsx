@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
+import { getClient, hasClient } from "@/lib/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { cn, friendlyError } from "@/lib/utils";
@@ -49,6 +49,7 @@ export function SorobanInvokeButton({
     setError(null);
 
     try {
+      if (!hasClient()) { setError("[sorokit-ui] Client not initialized."); return; }
       const { data, error: err } =
         await getClient().soroban.invokeContract(params);
       if (err) {
