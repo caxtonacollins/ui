@@ -47,12 +47,11 @@
     }
   ],
   "dependencies": {
-    "@hugeicons/core-free-icons": "^4.2.2",
-    "@hugeicons/react": "^1.1.9",
-    "clsx": "^2.1.1",
+    "@creit.tech/stellar-wallets-kit": "^0.0.0-beta.0",
+    "@stellar/stellar-sdk": "^13.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwind-merge": "^3.6.0"
+    "sorokit-core": "^0.1.0"
   },
   "peerDependencies": {
     "tailwindcss": "^3.0.0"
