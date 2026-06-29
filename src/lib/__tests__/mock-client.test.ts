@@ -1,6 +1,6 @@
-import type { NetworkName } from '../client';
 import { describe, expect, it } from 'vitest';
 
+import type { NetworkName } from '../client';
 import { deterministicMock, DeterministicMockData } from '../deterministic-mock';
 import { createMockClient, MOCK_ADDRESS, NETWORKS } from '../mock-client';
 

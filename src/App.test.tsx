@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AdapterResponse } from "./lib/adapter";
 import App from "./App";
+import type { AdapterResponse } from "./lib/adapter";
 
 const MOCK_CONNECTED_ADDRESS =
   "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";

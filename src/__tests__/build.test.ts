@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { describe, expect,it } from 'vitest';
 
 describe('Library Build', () => {
   it('should produce ES module output', () => {
