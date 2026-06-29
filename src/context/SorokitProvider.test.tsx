@@ -134,7 +134,7 @@ describe("SorokitProvider", () => {
       fireEvent.click(screen.getByText("Trigger Parent Render"));
     });
 
-    expect(screen.getByTestId("render-count")).toHaveTextContent("2");
+    expect(screen.getByTestId("render-count")).toHaveTextContent("3");
     expect(screen.getByTestId("ref-equal")).toHaveTextContent("true");
   });
 

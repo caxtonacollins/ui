@@ -4,19 +4,14 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 
 import App from './App.tsx'
-import { createClientAdapter } from './lib/adapter'
+import type { SorokitClient } from './lib/client.ts'
+import { createMockClient } from './lib/mock-client'
 
-// Initialize client adapter (no hardcoded mock address)
-const clientAdapter = createClientAdapter()
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App adapter={clientAdapter} />
-  </React.StrictMode>,
-)
+// Initialize mock client for development
+const client = createMockClient() as SorokitClient
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App adapter={clientAdapter} />
+    <App client={client} />
   </React.StrictMode>,
 )

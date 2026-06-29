@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { createMockClient } from "@/lib/mock-client";
+import type { SorokitClient } from "@/lib/client";
 import { useSorokit } from "@/context/useSorokit";
 
 import App from "./App";
@@ -22,7 +24,7 @@ describe("App routing", () => {
     vi.mocked(useSorokit).mockReturnValue({
       isConnected: false,
     } as ReturnType<typeof useSorokit>);
-    render(<App />);
+    render(<App client={createMockClient() as SorokitClient} />);
     expect(screen.getByTestId("connect-screen")).toBeInTheDocument();
     expect(screen.queryByTestId("dashboard")).not.toBeInTheDocument();
   });
@@ -31,7 +33,7 @@ describe("App routing", () => {
     vi.mocked(useSorokit).mockReturnValue({
       isConnected: true,
     } as ReturnType<typeof useSorokit>);
-    render(<App />);
+    render(<App client={createMockClient() as SorokitClient} />);
     expect(screen.getByTestId("dashboard")).toBeInTheDocument();
     expect(screen.queryByTestId("connect-screen")).not.toBeInTheDocument();
   });
