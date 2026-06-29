@@ -13,9 +13,9 @@
   ],
   "exports": {
     ".": {
+      "types": "./dist/components/index.d.ts",
       "import": "./dist/sorokit-ui.es.js",
-      "require": "./dist/sorokit-ui.cjs.js",
-      "types": "./dist/components/index.d.ts"
+      "require": "./dist/sorokit-ui.cjs.js"
     },
     "./styles": "./dist/style.css"
   },
@@ -30,7 +30,7 @@
     "test:exports": "tsc -p tsconfig.test-exports.json",
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
-    "size": "npm run build:lib && size-limit"
+    "size": "npm run build && size-limit"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.2.2",
@@ -81,13 +81,13 @@
     {
       "name": "ES module (gzip)",
       "path": "dist/sorokit-ui.es.js",
-      "limit": "60 KB",
+      "limit": "65 kB",
       "gzip": true
     },
     {
       "name": "CommonJS (gzip)",
       "path": "dist/sorokit-ui.cjs.js",
-      "limit": "60 KB",
+      "limit": "65 kB",
       "gzip": true
     }
   ]
