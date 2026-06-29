@@ -35,7 +35,9 @@
     "./style.css": "./dist/sorokit-ui.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "vite",
@@ -46,7 +48,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:exports": "tsc -p tsconfig.test-exports.json",
-    "size": "npm run build:lib && size-limit"
+    "size": "npm run build:lib && size-limit",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.2.2",
@@ -66,7 +69,6 @@
     "qrcode": "1.5.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "rolldown": "^1.1.3",
     "sorokit-core": "^0.1.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.4"
@@ -96,8 +98,16 @@
   },
   "size-limit": [
     {
+      "name": "ES module (gzip)",
       "path": "dist/sorokit-ui.es.js",
-      "limit": "60 KB"
+      "limit": "60 KB",
+      "gzip": true
+    },
+    {
+      "name": "CommonJS (gzip)",
+      "path": "dist/sorokit-ui.cjs.js",
+      "limit": "60 KB",
+      "gzip": true
     }
   ]
 }
