@@ -42,7 +42,15 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
   const sidebarRef = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
+  useEffect(() => {
+    const saved = localStorage.getItem("sorokit-active-nav");
+    if (saved && saved !== active) {
+      onNavigate(saved as NavSection);
+    }
+  }, []);
+
   function handleNav(id: NavSection) {
+    localStorage.setItem("sorokit-active-nav", id);
     onNavigate(id);
     onClose();
   }

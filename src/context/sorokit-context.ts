@@ -11,6 +11,7 @@ export interface SorokitState {
   address: string | null;
   isConnected: boolean;
   isConnecting: boolean;
+  isLoading: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => Promise<void>;
   account: AccountData | null;

@@ -104,6 +104,37 @@ describe("Sidebar", () => {
     expect(navElement).toHaveAttribute("aria-label", "Main navigation");
   });
 
+  it("reads localStorage on mount and pre-selects the saved section", () => {
+    localStorage.setItem("sorokit-active-nav", "network");
+
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+
+    expect(onNavigate).toHaveBeenCalledWith("network");
+    localStorage.removeItem("sorokit-active-nav");
+  });
+
+  it("does not call onNavigate when localStorage has no saved section", () => {
+    localStorage.removeItem("sorokit-active-nav");
+
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it("updates localStorage when navigating to a new section", () => {
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /account/i }));
+
+    expect(localStorage.getItem("sorokit-active-nav")).toBe("account");
+  });
+
   it("traps focus and handles escape/restoration on mobile", () => {
     vi.stubGlobal("innerWidth", 375);
 
