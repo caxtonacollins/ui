@@ -14,6 +14,7 @@ export { AssetRowSkeleton, Skeleton, SkeletonCard, SkeletonRow } from "./ui/Skel
 
 // Error handling
 export { ErrorBoundary } from "./ErrorBoundary";
+export type { ErrorBoundaryProps } from "./ErrorBoundary";
 
 // Wallet
 export { AccountCard, AccountCardCompact } from "./AccountCard";
@@ -33,13 +34,19 @@ export { NetworkSwitcher } from "./NetworkSwitcher";
 // Transactions
 export { ClaimableBalanceCard } from "./ClaimableBalanceCard";
 export { FeeEstimator } from "./FeeEstimator";
+export type { FeeEstimatorProps } from "./FeeEstimator";
 export { TransactionHistory } from "./TransactionHistory";
 export { TransactionPanel } from "./TransactionPanel";
 
 // Soroban
 export { ContractEventFeed } from "./ContractEventFeed";
+export type { ContractEventFeedProps } from "./ContractEventFeed";
 export { SorobanInvokeButton } from "./SorobanInvokeButton";
 export { SorobanPanel } from "./SorobanPanel";
+
+// Providers and hooks
+export { SorokitProvider } from "../context/SorokitProvider";
+export { useSorokit } from "../context/useSorokit";
 
 // Utilities
 export { QRCode } from "./QRCode";
@@ -52,5 +59,6 @@ export type {
   ContractEvent,
   InvokeParams,
   NetworkInfo,
+  SorokitClient,
   Transaction,
 } from "../lib/client";
