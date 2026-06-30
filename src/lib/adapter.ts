@@ -1,4 +1,15 @@
-// No import needed for SorobanClient as we'll use any for the property
+interface FreighterWallet {
+  requestAccess: () => Promise<{ error?: string }>;
+  getPublicKey: () => Promise<string>;
+}
+
+interface XBullWallet {
+  requestPublicKey: () => Promise<string>;
+}
+
+interface AlbedoWallet {
+  publicKey: () => Promise<{ publicKey: string }>;
+}
 
 export interface ClientAdapterConfig {
   network?: 'testnet' | 'public';
@@ -39,15 +50,17 @@ export class ClientAdapter {
 
       // Try to connect to installed wallet
       let connectedAddress: string | null = null;
+      const win = window as unknown as Record<string, unknown>;
 
       // Check Freighter
-      if (window.freighter) {
+      const freighter = win.freighter as FreighterWallet | undefined;
+      if (freighter) {
         try {
-          const result = await window.freighter.requestAccess();
+          const result = await freighter.requestAccess();
           if (result.error) {
             throw new Error(result.error);
           }
-          const pk = await window.freighter.getPublicKey();
+          const pk = await freighter.getPublicKey();
           connectedAddress = pk;
         } catch (e) {
           console.debug('Freighter not available:', e);
@@ -55,9 +68,10 @@ export class ClientAdapter {
       }
 
       // Check xBull
-      if (!connectedAddress && window.xBull) {
+      const xBull = win.xBull as XBullWallet | undefined;
+      if (!connectedAddress && xBull) {
         try {
-          const pk = await window.xBull.requestPublicKey();
+          const pk = await xBull.requestPublicKey();
           connectedAddress = pk;
         } catch (e) {
           console.debug('xBull not available:', e);
@@ -65,9 +79,10 @@ export class ClientAdapter {
       }
 
       // Check Albedo
-      if (!connectedAddress && window.albedo) {
+      const albedo = win.albedo as AlbedoWallet | undefined;
+      if (!connectedAddress && albedo) {
         try {
-          const result = await window.albedo.publicKey();
+          const result = await albedo.publicKey();
           connectedAddress = result.publicKey;
         } catch (e) {
           console.debug('Albedo not available:', e);
