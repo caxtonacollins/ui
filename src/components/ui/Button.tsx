@@ -78,7 +78,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                   aria-hidden="true"
                   className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin shrink-0"
                 />
-                <span className="sr-only">Loading</span>
+                <span aria-hidden="true" className="sr-only">Loading</span>
               </>
             )}
             {children}

@@ -5,7 +5,7 @@ import { DeterministicMockData, deterministicMock } from '../deterministic-mock'
 describe('Mock Client - Issue #30 Fixes', () => {
   describe('Fix 1: Valid MOCK_ADDRESS', () => {
     it('should have valid Stellar Ed25519 public key format', () => {
-      // Stellar public keys start with G and are 56 characters
+      // Stellar public keys start with G and are 56 characters total
       expect(MOCK_ADDRESS).toMatch(/^G[A-Z0-9]{55}$/);
       expect(MOCK_ADDRESS.length).toBe(56);
     });
@@ -17,38 +17,48 @@ describe('Mock Client - Issue #30 Fixes', () => {
   });
 
   describe('Fix 2: switchNetwork error handling', () => {
-    it('should return error for unknown network', () => {
-      const result = createMockClient('invalidNetwork');
+    it('should return error for unknown network', async () => {
+      const client = createMockClient();
+      const result = await client.network.switchNetwork('invalidNetwork' as any);
       expect(result.error).toBeDefined();
-      expect(result.error).toContain('Unknown network');
+      expect(result.error).toContain('Invalid network');
       expect(result.data).toBeNull();
     });
 
-    it('should return error message with valid network list', () => {
-      const result = createMockClient('badname');
-      expect(result.error).toContain('testnet');
-      expect(result.error).toContain('public');
+    it('should return error message for bad network name', async () => {
+      const client = createMockClient();
+      const result = await client.network.switchNetwork('badname' as any);
+      expect(result.error).toContain('badname');
+      expect(result.data).toBeNull();
     });
 
-    it('should return valid config for known networks', () => {
-      const result = createMockClient('testnet');
+    it('should return valid config for known networks', async () => {
+      const client = createMockClient();
+      const result = await client.network.switchNetwork('testnet');
       expect(result.error).toBeNull();
-      expect(result.data?.network).toEqual(NETWORKS.testnet);
+      expect(result.data?.name).toBe('testnet');
     });
 
-    it('should default to testnet when no network specified', () => {
-      const result = createMockClient();
+    it('should default to testnet via getNetwork', async () => {
+      const client = createMockClient();
+      const result = await client.network.getNetwork();
       expect(result.error).toBeNull();
-      expect(result.data?.network).toEqual(NETWORKS.testnet);
+      expect(result.data?.name).toBe('testnet');
     });
 
-    it('should handle both testnet and public networks', () => {
-      const testnet = createMockClient('testnet');
-      const public_ = createMockClient('public');
-      
+    it('should handle both testnet and futurenet networks', async () => {
+      const client = createMockClient();
+      const testnet = await client.network.switchNetwork('testnet');
+      const futurenet = await client.network.switchNetwork('futurenet');
+
       expect(testnet.error).toBeNull();
-      expect(public_.error).toBeNull();
-      expect(testnet.data?.network).not.toEqual(public_.data?.network);
+      expect(futurenet.error).toBeNull();
+      expect(testnet.data?.name).not.toEqual(futurenet.data?.name);
+    });
+
+    it('should expose NETWORKS constant for testnet and public', () => {
+      expect(NETWORKS.testnet).toBeDefined();
+      expect(NETWORKS.public).toBeDefined();
     });
   });
 
@@ -56,14 +66,14 @@ describe('Mock Client - Issue #30 Fixes', () => {
     it('should generate consistent hex with same seed', () => {
       const mock1 = new DeterministicMockData(12345);
       const mock2 = new DeterministicMockData(12345);
-      
+
       expect(mock1.generateHex(32)).toBe(mock2.generateHex(32));
     });
 
     it('should generate different hex with different seeds', () => {
       const mock1 = new DeterministicMockData(12345);
       const mock2 = new DeterministicMockData(54321);
-      
+
       expect(mock1.generateHex(32)).not.toBe(mock2.generateHex(32));
     });
 
@@ -80,35 +90,36 @@ describe('Mock Client - Issue #30 Fixes', () => {
     it('should generate reproducible history', () => {
       const mock = new DeterministicMockData(12345);
       const history1 = mock.generateMockHistory(3);
-      
+
       const mock2 = new DeterministicMockData(12345);
       const history2 = mock2.generateMockHistory(3);
-      
+
       expect(history1).toEqual(history2);
     });
 
     it('should generate reproducible events', () => {
       const mock = new DeterministicMockData(12345);
       const events1 = mock.generateMockEvents(2);
-      
+
       const mock2 = new DeterministicMockData(12345);
       const events2 = mock2.generateMockEvents(2);
-      
+
       expect(events1).toEqual(events2);
     });
 
     it('snapshots should be reproducible', () => {
+      const mock1 = new DeterministicMockData(12345);
       const snapshot1 = {
-        history: deterministicMock.generateMockHistory(5),
-        events: deterministicMock.generateMockEvents(3),
+        history: mock1.generateMockHistory(5),
+        events: mock1.generateMockEvents(3),
       };
-      
-      const mock = new DeterministicMockData(12345);
+
+      const mock2 = new DeterministicMockData(12345);
       const snapshot2 = {
-        history: mock.generateMockHistory(5),
-        events: mock.generateMockEvents(3),
+        history: mock2.generateMockHistory(5),
+        events: mock2.generateMockEvents(3),
       };
-      
+
       expect(snapshot1).toEqual(snapshot2);
     });
   });

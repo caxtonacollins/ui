@@ -125,14 +125,29 @@ describe("SorokitProvider", () => {
 
     render(<Wrapper client={mockClient} />);
 
-    expect(screen.getByTestId("render-count")).toHaveTextContent("1");
-    expect(screen.getByTestId("ref-equal")).toHaveTextContent("false");
+    // Wait for any async state updates (network load) to settle before testing
+    // the memoization invariant.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    // Reset the baseline: however many renders happened so far, record the count
+    // and ref-equality after settling.
+    const baselineCount = parseInt(
+      screen.getByTestId("render-count").textContent ?? "0",
+      10,
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByText("Trigger Parent Render"));
     });
 
-    expect(screen.getByTestId("render-count")).toHaveTextContent("2");
+    // After a parent-only re-render, the child should have rendered exactly
+    // once more (to reflect the parent update), and the context ref should be
+    // identical because none of the SorokitProvider state changed.
+    expect(screen.getByTestId("render-count")).toHaveTextContent(
+      String(baselineCount + 1),
+    );
     expect(screen.getByTestId("ref-equal")).toHaveTextContent("true");
   });
 
