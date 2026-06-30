@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Button } from "./Button";
 
 describe("Button", () => {
@@ -84,5 +84,108 @@ describe("Button", () => {
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/test");
     expect(link?.className).toContain("bg-brand"); // variant styles are transferred
+  });
+
+  describe("requireConfirm pattern", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("changes label to confirmLabel on first click", () => {
+      const onClick = vi.fn();
+      render(
+        <Button requireConfirm confirmLabel="Are you sure?" onClick={onClick}>
+          Delete
+        </Button>
+      );
+
+      const button = screen.getByRole("button", { name: "Delete" });
+      fireEvent.click(button);
+
+      expect(screen.getByRole("button", { name: "Are you sure?" })).toBeInTheDocument();
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it("fires onClick on second click", () => {
+      const onClick = vi.fn();
+      render(
+        <Button requireConfirm confirmLabel="Confirm?" onClick={onClick}>
+          Delete
+        </Button>
+      );
+
+      const button = screen.getByRole("button", { name: "Delete" });
+
+      // First click
+      fireEvent.click(button);
+      expect(onClick).not.toHaveBeenCalled();
+
+      // Second click
+      const confirmButton = screen.getByRole("button", { name: "Confirm?" });
+      fireEvent.click(confirmButton);
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("resets to original label after timeout without second click", () => {
+      const onClick = vi.fn();
+      render(
+        <Button requireConfirm confirmLabel="Confirm?" confirmTimeout={3000} onClick={onClick}>
+          Delete
+        </Button>
+      );
+
+      const button = screen.getByRole("button", { name: "Delete" });
+
+      // First click
+      fireEvent.click(button);
+      expect(screen.getByRole("button", { name: "Confirm?" })).toBeInTheDocument();
+
+      // Advance time past timeout
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+
+      // Label should reset back to original
+      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it("cancels timeout if second click happens before timeout", () => {
+      const onClick = vi.fn();
+      render(
+        <Button requireConfirm confirmLabel="Confirm?" confirmTimeout={3000} onClick={onClick}>
+          Delete
+        </Button>
+      );
+
+      const button = screen.getByRole("button", { name: "Delete" });
+
+      // First click
+      fireEvent.click(button);
+      expect(screen.getByRole("button", { name: "Confirm?" })).toBeInTheDocument();
+
+      // Second click before timeout
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      const confirmButton = screen.getByRole("button", { name: "Confirm?" });
+      fireEvent.click(confirmButton);
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+
+      // Advance time to see if timeout would have fired (it shouldn't)
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+
+      // Button should show original label after reset
+      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    });
   });
 });
