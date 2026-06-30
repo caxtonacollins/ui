@@ -40,7 +40,7 @@
     "LICENSE"
   ],
   "scripts": {
-"dev": "vite",
+    "dev": "vite",
     "build": "npm run build:lib",
     "build:lib": "vite build --config vite.lib.config.ts",
     "build:app": "tsc -b && vite build",

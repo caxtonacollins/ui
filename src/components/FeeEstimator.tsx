@@ -27,10 +27,10 @@ export function FeeEstimator({
   const loadingRef = useRef(false);
   const onEstimateRef = useRef(onEstimate);
 
-  // Update ref without triggering re-render
+  // Update onEstimate ref without causing re‑render
   useEffect(() => {
     onEstimateRef.current = onEstimate;
-  });
+  }, [onEstimate]);
 
   const load = useCallback(async () => {
     if (loadingRef.current) return;
@@ -44,22 +44,23 @@ export function FeeEstimator({
         return;
       }
       setFee(data);
-      setError(null);
+      if (data?.recommended) {
+        const displayRecommended = (parseInt(data.recommended) * operations).toString();
+        onEstimateRef.current?.(displayRecommended);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load fee estimate");
     } finally {
       setLoading(false);
       loadingRef.current = false;
     }
-  }, []);
+  }, [operations, _network]);
 
   // Initial load and retry trigger
   useEffect(() => {
     let cancelled = false;
     const doLoad = async () => {
-      if (!cancelled) {
-        await load();
-      }
+      if (!cancelled) await load();
     };
     void doLoad();
     return () => {
@@ -67,52 +68,34 @@ export function FeeEstimator({
     };
   }, [load, retryTrigger]);
 
-  // Interval manager
+  // Polling interval
   useEffect(() => {
     if (refreshInterval <= 0 || error) return;
-
     const intervalId = setInterval(() => {
       void load();
     }, refreshInterval);
-
-    return () => {
-      clearInterval(intervalId);
-    };
+    return () => clearInterval(intervalId);
   }, [load, refreshInterval, error]);
 
-  // Handle onEstimate callback when recommended fee or operations changes
-  useEffect(() => {
-    if (fee?.recommended) {
-      const displayRecommended = (parseInt(fee.recommended) * operations).toString();
-      onEstimateRef.current?.(displayRecommended);
-    }
-  }, [fee?.recommended, operations]);
-
-  // Trigger manually or via retry
   const handleRetry = useCallback(() => {
     setRetryTrigger((prev) => prev + 1);
   }, []);
 
-  // Calculate fees to display
   const displayBaseFee = fee ? (parseInt(fee.baseFee) * operations).toString() : "";
   const displayRecommended = fee ? (parseInt(fee.recommended) * operations).toString() : "";
 
   return (
-    <div
-      className={cn(
-"rounded-xl border border-line bg-surface overflow-hidden relative",
-        className,
-      )}
-    >
+    <div className={cn(
+      "rounded-xl border border-line bg-surface overflow-hidden relative",
+      className,
+    )}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-line">
         <div>
           <h3 className="text-[13px] font-semibold text-ink">Network Fee</h3>
-          <p className="text-[11px] text-ink-3 mt-0.5">
-            Current Stellar base fee estimate
-          </p>
+          <p className="text-[11px] text-ink-3 mt-0.5">Current Stellar base fee estimate</p>
         </div>
         <button
-onClick={handleRetry}
+          onClick={handleRetry}
           disabled={loading}
           aria-label="Refresh fee estimate"
           className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors disabled:opacity-40"
@@ -128,8 +111,8 @@ onClick={handleRetry}
         </button>
       </div>
 
-<div className="px-5 py-4 min-h-[64px] flex items-center">
-        {/* Polite live region for screen readers to announce fee updates */}
+      <div className="px-5 py-4 min-h-[64px] flex items-center">
+        {/* Live region for assistive tech */}
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {fee ? `Base Fee: ${displayBaseFee} stroops, Recommended: ${displayRecommended} stroops` : ""}
         </div>
@@ -159,12 +142,7 @@ onClick={handleRetry}
             )}
             <FeeCell label="Base Fee" value={displayBaseFee} unit="stroops" />
             <div className="w-px h-8 bg-line" />
-            <FeeCell
-              label="Recommended"
-              value={displayRecommended}
-              unit="stroops"
-              highlight
-            />
+            <FeeCell label="Recommended" value={displayRecommended} unit="stroops" highlight />
           </div>
         ) : null}
       </div>
@@ -179,24 +157,12 @@ interface FeeCellProps {
   highlight?: boolean;
 }
 
-function FeeCell({
-  label,
-  value,
-  unit,
-  highlight,
-}: FeeCellProps) {
+function FeeCell({ label, value, unit, highlight }: FeeCellProps) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
-        {label}
-      </span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">{label}</span>
       <div className="flex items-baseline gap-1.5">
-        <span
-          className={cn(
-            "text-[18px] font-semibold leading-none",
-            highlight ? "text-brand" : "text-ink",
-          )}
-        >
+        <span className={cn("text-[18px] font-semibold leading-none", highlight ? "text-brand" : "text-ink")}>
           {value}
         </span>
         <span className="text-[10px] text-ink-3">{unit}</span>
