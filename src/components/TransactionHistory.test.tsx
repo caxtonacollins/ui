@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { TransactionHistory } from "./TransactionHistory";
 import { getClient } from "@/lib/client";
 import { useSorokit } from "@/context/useSorokit";
@@ -22,6 +22,8 @@ function makeTx(i: number): Transaction {
     successful: true,
     createdAt: new Date("2024-01-01").toISOString(),
     memo: null,
+    operationCount: 1,
+    feePaid: "100",
   };
 }
 
@@ -181,5 +183,49 @@ describe("TransactionHistory", () => {
     expect(getHistory).toHaveBeenLastCalledWith(ADDRESS, 1, PAGE_SIZE);
     // Prev is disabled again on the first page.
     expect(screen.getByRole("button", { name: /prev/i })).toBeDisabled();
+  });
+
+  // ── TxRow feePaid and operationCount badge tests (#51, #84) ────────────────
+  describe("TxRow", () => {
+    it("renders feePaid value in the row", async () => {
+      const txWithFee: Transaction = {
+        ...makeTx(0),
+        feePaid: "250",
+      };
+      mockGetHistory([txWithFee], 1);
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getByText(/250 stroops/i));
+      expect(screen.getByText(/250 stroops/i)).toBeInTheDocument();
+    });
+
+    it("shows operationCount badge when operationCount > 1", async () => {
+      const multiOpTx: Transaction = {
+        ...makeTx(0),
+        operationCount: 3,
+        feePaid: "300",
+      };
+      mockGetHistory([multiOpTx], 1);
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getByText(/3 ops/i));
+      expect(screen.getByText(/3 ops/i)).toBeInTheDocument();
+    });
+
+    it("hides operationCount badge when operationCount === 1", async () => {
+      const singleOpTx: Transaction = {
+        ...makeTx(0),
+        operationCount: 1,
+        feePaid: "100",
+      };
+      mockGetHistory([singleOpTx], 1);
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getByText(/100 stroops/i));
+      expect(screen.queryByText("1 ops")).not.toBeInTheDocument();
+    });
   });
 });

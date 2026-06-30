@@ -19,7 +19,10 @@ function AssetRow({ b }: { b: Balance }) {
 }
 
 export function BalanceList() {
-  const { balances, isLoadingAccount, isConnected } = useSorokit();
+  const { balances, isLoadingAccount, isConnected, network } = useSorokit();
+
+  const isTestnet = network?.name === "testnet";
+  const showFriendbot = isTestnet && isConnected && !isLoadingAccount && balances.length === 0;
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
@@ -44,9 +47,21 @@ export function BalanceList() {
           ))}
         </div>
       ) : balances.length === 0 ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          No assets found
-        </p>
+        <div className="flex flex-col items-center gap-3 py-10">
+          <p className="text-[13px] text-ink-3">
+            No assets found
+          </p>
+          {showFriendbot && (
+            <a
+              href="https://friendbot.stellar.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[13px] text-brand hover:underline"
+            >
+              Get test XLM from Friendbot →
+            </a>
+          )}
+        </div>
       ) : (
         <div>
           {balances.map((b) => (
