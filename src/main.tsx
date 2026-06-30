@@ -4,8 +4,8 @@ import "./index.css";
 import App from "./App";
 import { SorokitProvider } from "@/context/SorokitProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import {
-  initClient,
+import { initClient } from "@/lib/client";
+import { createSorokitClient, isOk } from "sorokit-core";
 import { createClientAdapter } from "@/lib/adapter";
 
 /**
