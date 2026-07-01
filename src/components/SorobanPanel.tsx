@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -23,6 +23,13 @@ export function SorobanPanel({
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset state, result, and error when contractId changes to avoid stale result flashes
+  useEffect(() => {
+    setState("idle");
+    setResult(null);
+    setError(null);
+  }, [contractId]);
 
   const canInvoke = isConnected && contractId.trim() && method.trim();
 

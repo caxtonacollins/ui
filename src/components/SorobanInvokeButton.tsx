@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
@@ -15,6 +15,8 @@ interface SorobanInvokeButtonProps {
   label?: string;
   /** Show result inline below the button */
   showResult?: boolean;
+  /** Auto reset after successful invocation (ms) */
+  autoResetAfter?: number;
   /** Called on success with the result data */
   onSuccess?: (data: unknown) => void;
   /** Called on error */
@@ -74,6 +76,18 @@ export function SorobanInvokeButton({
   }
 
   const buttonLabel = label ?? `${params.method}()`;
+
+  // Auto-reset effect after success
+  useEffect(() => {
+    if (state === "success" && typeof autoResetAfter === "number") {
+      const timer = setTimeout(() => {
+        setState("idle");
+        setResult(null);
+        setError(null);
+      }, autoResetAfter);
+      return () => clearTimeout(timer);
+    }
+  }, [state, autoResetAfter]);
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
