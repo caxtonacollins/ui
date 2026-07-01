@@ -166,4 +166,23 @@ describe("SorobanPanel", () => {
     expect(screen.queryByText("Result")).not.toBeInTheDocument();
     expect(screen.queryByText(/"balance": 1000/)).not.toBeInTheDocument();
   });
+
+  it("clears result when contractId changes after success", async () => {
+    mockInvokeContract.mockResolvedValueOnce({ data: { success: true, balance: 1000 }, error: null });
+    const onContractIdChange = vi.fn();
+    const { rerender } = render(
+      <SorobanPanel contractId="C123" onContractIdChange={onContractIdChange} />
+    );
+    // Fill out method and args to enable button
+    fireEvent.change(screen.getByLabelText("Method"), { target: { value: "balance" } });
+    fireEvent.change(screen.getByLabelText("Arguments (JSON array)"), { target: { value: "[\"GAAZI...\", 42]" } });
+    fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+    // Wait for result displayed
+    await screen.findByText("Result");
+    // Change contractId prop
+    rerender(<SorobanPanel contractId="C999" onContractIdChange={onContractIdChange} />);
+    // Result should be cleared
+    expect(screen.queryByText("Result")).not.toBeInTheDocument();
+    expect(screen.queryByText(/balance/)).not.toBeInTheDocument();
+  });
 });
