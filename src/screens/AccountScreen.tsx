@@ -1,16 +1,25 @@
+import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+
 import { AccountCard } from "@/components/AccountCard";
 import { BalanceList } from "@/components/BalanceList";
 import { ClaimableBalanceCard } from "@/components/ClaimableBalanceCard";
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { SCREEN_LABELS } from "@/lib/nav-labels";
 
 export function AccountScreen() {
   const { isConnected, isLoadingAccount, refreshAccount } = useSorokit();
+  const { title, sub } = SCREEN_LABELS.account;
 
   return (
     <div className="flex flex-col gap-5">
+      <div>
+        <h2 className="text-[15px] font-semibold text-ink leading-none">
+          {title}
+        </h2>
+        <p className="text-[11px] text-ink-3 mt-0.5">{sub}</p>
+      </div>
       {isConnected && (
         <div className="flex justify-end">
           <Button
@@ -24,6 +33,16 @@ export function AccountScreen() {
             Refresh
           </Button>
         </div>
+      )}
+      {isConnected && network?.name === "testnet" && balances.length === 0 && (
+        <a
+          href="https://friendbot.stellar.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-primary underline"
+        >
+          Fund with Friendbot
+        </a>
       )}
       <AccountCard />
       <BalanceList />

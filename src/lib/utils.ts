@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue,clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /** Truncate a Stellar address or tx hash for display */
-export function truncateAddress(address: string, start = 6, end = 4): string {
+export function truncateAddress(address: string | null | undefined, start = 6, end = 4): string {
   if (!address) return "";
   const chars = Array.from(address);
   if (chars.length <= start + end) return address;
