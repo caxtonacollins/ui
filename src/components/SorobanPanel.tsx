@@ -1,3 +1,8 @@
+import { useState } from "react";
+import { useSorokit } from "@/context/useSorokit";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 /**
  * SorobanPanel Component
  *
@@ -167,6 +172,33 @@ import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
 
 type State = "idle" | "loading" | "success" | "error";
+
+/**
+ * SorobanPanel Component
+ * 
+ * Provides a user-friendly interface for interacting with Soroban smart contracts.
+ * Handles contract invocation, parameter input, and result display.
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * import { SorobanPanel } from 'sorokit-ui';
+ * 
+ * export function App() {
+ *   return <SorobanPanel />;
+ * }
+ * ```
+ * 
+ * @returns The rendered SorobanPanel component
+ * 
+ * @remarks
+ * - Requires SorokitProvider context
+ * - Automatically handles wallet connection
+ * - Supports all Soroban contract types
+ * 
+ * @see {@link SorokitProvider} for context setup
+ * @see {@link useClient} for custom client access
+ */
 
 interface SorobanPanelProps {
   contractId: string;
