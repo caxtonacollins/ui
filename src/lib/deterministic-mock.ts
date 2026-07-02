@@ -33,55 +33,56 @@ export class DeterministicMockData {
     return result;
   }
 
-  /**
-   * Generate deterministic transaction hash
-   */
-  generateTransactionHash(): string {
-    return '0x' + this.generateHex(64);
-  }
+	/**
+	 * Generate deterministic transaction hash
+	 */
+	generateTransactionHash(): string {
+		return this.generateHex(64);
+	}
 
-  /**
-   * Generate deterministic event ID
-   */
-  generateEventId(): string {
-    return this.generateHex(32);
-  }
+	/**
+	 * Generate deterministic event ID
+	 */
+	generateEventId(): string {
+		return this.generateHex(32);
+	}
 
-  /**
-   * Generate mock transaction history with deterministic values
-   */
-  generateMockHistory(count: number = 5) {
-    const history = [];
-    for (let i = 0; i < count; i++) {
-      history.push({
-        id: this.generateTransactionHash(),
-        timestamp: 1700000000000 - i * 1000, // Fixed base time
-        status: 'success',
-        type: 'contract_invoke',
-      });
-    }
-    return history;
-  }
+	/**
+	 * Generate mock transaction history with deterministic values
+	 */
+	generateMockHistory(count: number = 5) {
+		const history = [];
+		for (let i = 0; i < count; i++) {
+			history.push({
+				hash: this.generateTransactionHash(),
+				ledger: 12345 - i,
+				createdAt: new Date(1700000000000 - i * 1000).toISOString(),
+				successful: true,
+				operationCount: 1,
+				feePaid: '100',
+			});
+		}
+		return history;
+	}
 
-  /**
-   * Generate mock events with deterministic values
-   */
-  generateMockEvents(count: number = 3) {
-    const events = [];
-    for (let i = 0; i < count; i++) {
-      events.push({
-        id: this.generateEventId(),
-        type: 'contract_event',
-        timestamp: 1700000000000 - i * 500,
-        data: {
-          contractId: this.generateHex(56),
-          topics: [this.generateHex(32), this.generateHex(32)],
-          value: this.generateHex(64),
-        },
-      });
-    }
-    return events;
-  }
+	/**
+	 * Generate mock events with deterministic values
+	 */
+	generateMockEvents(count: number = 3) {
+		const events = [];
+		for (let i = 0; i < count; i++) {
+			events.push({
+				id: this.generateEventId(),
+				contractId: this.generateHex(56),
+				type: 'contract',
+				ledger: 12345 - i,
+				createdAt: new Date(1700000000000 - i * 500).toISOString(),
+				topics: [this.generateHex(32), this.generateHex(32)],
+				value: this.generateHex(64),
+			});
+		}
+		return events;
+	}
 }
 
 // Export singleton with fixed seed for consistent test data

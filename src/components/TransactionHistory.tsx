@@ -1,21 +1,22 @@
-import { useEffect, useState } from "react";
-import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { truncateAddress } from "@/lib/utils";
-import type { Transaction } from "@/lib/client";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  CheckmarkCircle01Icon,
-  Cancel01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  Cancel01Icon,
+  CheckmarkCircle01Icon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { useSorokit } from "@/context/useSorokit";
+import type { Transaction } from "@/lib/client";
+import { getClient } from "@/lib/client";
+import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
-function TxRow({ tx }: { tx: Transaction }) {
+export function TxRow({ tx }: { tx: Transaction }) {
   const date = new Date(tx.createdAt);
   const timeStr = date.toLocaleTimeString([], {
     hour: "2-digit",
