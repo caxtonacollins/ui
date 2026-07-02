@@ -65,4 +65,40 @@ describe("AddressDisplay", () => {
     render(<AddressDisplay address={address} label="Destination" />);
     expect(screen.getByText("Destination")).toBeInTheDocument();
   });
+
+  it("fires onCopy callback after successful clipboard write", async () => {
+    const onCopy = vi.fn();
+    render(<AddressDisplay address={address} onCopy={onCopy} />);
+
+    const copyBtn = screen.getByRole("button", { name: "Copy address" });
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    expect(onCopy).toHaveBeenCalled();
+  });
+
+  it("adds select-all class to the address span when showFull is true", () => {
+    render(<AddressDisplay address={address} showFull />);
+    const el = screen.getByText(address);
+    expect(el.className).toContain("select-all");
+  });
+
+  it("does not add select-all class when showFull is false", () => {
+    render(<AddressDisplay address={address} />);
+    const el = screen.getByText("GBAMQXTQ...ZJQQQQ");
+    expect(el.className).not.toContain("select-all");
+  });
+
+  it("applies correct font size for sm size when showFull is true", () => {
+    render(<AddressDisplay address={address} showFull size="sm" />);
+    const el = screen.getByText(address);
+    expect(el.className).toContain("text-[10px]");
+  });
+
+  it("applies correct font size for lg size when showFull is true", () => {
+    render(<AddressDisplay address={address} showFull size="lg" />);
+    const el = screen.getByText(address);
+    expect(el.className).toContain("text-[13px]");
+  });
 });
