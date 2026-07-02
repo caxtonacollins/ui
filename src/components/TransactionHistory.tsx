@@ -57,12 +57,24 @@ export function TxRow({ tx }: { tx: Transaction }) {
       </div>
 
       <div className="flex flex-col items-end gap-0.5 shrink-0">
-        <Badge variant={tx.successful ? "success" : "error"} live>
-          {tx.successful ? "Success" : "Failed"}
-        </Badge>
-        <span className="text-[10px] text-ink-3">
-          {dateStr} {timeStr}
-        </span>
+        <div className="flex items-center gap-2">
+          <Badge variant={tx.successful ? "success" : "error"} live>
+            {tx.successful ? "Success" : "Failed"}
+          </Badge>
+          {tx.operationCount > 1 && (
+            <Badge variant="default" className="text-[10px] px-1.5 py-0.5">
+              {tx.operationCount} ops
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-ink-3">
+            {dateStr} {timeStr}
+          </span>
+          <span className="text-[10px] text-ink-3">
+            · {tx.feePaid} stroops
+          </span>
+        </div>
       </div>
     </div>
   );
