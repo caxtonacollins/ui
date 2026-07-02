@@ -1,8 +1,10 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TransactionPanel } from "./TransactionPanel";
-import { getClient } from "@/lib/client";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+import { getClient } from "@/lib/client";
+
+import { TransactionPanel } from "./TransactionPanel";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -47,7 +49,8 @@ describe("TransactionPanel", () => {
     // Submit and check loading state
     fireEvent.click(submitBtn);
     expect(submitBtn).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Submitting…" })).toBeInTheDocument();
+    // When loading, sr-only "Loading" text prepends to accessible name
+    expect(screen.getByRole("button", { name: "LoadingSubmitting…" })).toBeInTheDocument();
 
     // Check success state
     expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
@@ -110,7 +113,7 @@ describe("TransactionPanel", () => {
   });
 
   it("shows error if address is null at submit time", async () => {
-    (useSorokit as any).mockReturnValue({
+    vi.mocked(useSorokit).mockReturnValue({
       address: null,
       isConnected: true,
     });
@@ -132,7 +135,7 @@ describe("TransactionPanel", () => {
   });
 
   it("shows self-payment warning when destination equals source address", async () => {
-    (useSorokit as any).mockReturnValue({
+    vi.mocked(useSorokit).mockReturnValue({
       address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
       isConnected: true,
     });
@@ -176,5 +179,51 @@ describe("TransactionPanel", () => {
       "opacity-0",
     );
     expect(submitBtn).not.toBeDisabled();
+  });
+
+  it("preserves form values when clicking Try Again after error", async () => {
+    const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Transaction failed" });
+
+    vi.mocked(getClient).mockReturnValue({
+      transaction: {
+        submit: mockSubmit,
+      },
+    } as unknown as ReturnType<typeof getClient>);
+
+    render(<TransactionPanel />);
+
+    const destInput = screen.getByLabelText("Destination Address");
+    const amountInput = screen.getByLabelText("Amount (XLM)");
+    const memoInput = screen.getByLabelText("Memo (optional)");
+    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+
+    // Fill in form values
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    const testAmount = "10.5";
+    const testMemo = "Test memo";
+
+    fireEvent.change(destInput, { target: { value: validDest } });
+    fireEvent.change(amountInput, { target: { value: testAmount } });
+    fireEvent.change(memoInput, { target: { value: testMemo } });
+
+    // Verify values are set
+    expect(destInput).toHaveValue(validDest);
+    expect(amountInput).toHaveValue(testAmount);
+    expect(memoInput).toHaveValue(testMemo);
+
+    // Submit to trigger error
+    fireEvent.click(submitBtn);
+
+    // Wait for error state
+    await screen.findByText("Transaction failed");
+
+    // Click "New Transaction" (Try Again) button
+    const newTxBtn = screen.getByRole("button", { name: "New Transaction" });
+    fireEvent.click(newTxBtn);
+
+    // Verify form values are preserved (not cleared)
+    expect(destInput).toHaveValue(validDest);
+    expect(amountInput).toHaveValue(testAmount);
+    expect(memoInput).toHaveValue(testMemo);
   });
 });

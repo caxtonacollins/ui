@@ -2,7 +2,13 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ClaimableBalanceCard } from "./ClaimableBalanceCard";
 import { getClient } from "@/lib/client";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+import { getClient } from "@/lib/client";
+
+import { ClaimableBalanceCard } from "./ClaimableBalanceCard";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
