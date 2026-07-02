@@ -2,39 +2,76 @@ import { AlertCircleIcon, Refresh01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
+import { cn } from "../lib/utils";
+
 interface Props {
   children: ReactNode;
   /** Custom fallback UI. Receives the error and a reset callback. */
   fallback?: (error: Error, reset: () => void) => ReactNode;
+  /** Called when the boundary catches an error. */
+  onError?: (error: Error, info: ErrorInfo) => void;
+  /** Render fallback content as an in-page scoped panel instead of a full-page state. */
+  isolate?: boolean;
 }
 
 interface State {
   error: Error | null;
+  resetKey: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, resetKey: 0 };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("[sorokit-ui] Uncaught error:", error, info.componentStack);
+    if (this.props.onError) {
+      this.props.onError(error, info);
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.error("[sorokit-ui] Uncaught error:", error, info.componentStack);
+    }
   }
 
-  reset = () => this.setState({ error: null });
+  reset = () =>
+    this.setState((state) => ({
+      error: null,
+      resetKey: state.resetKey + 1,
+    }));
 
   render() {
-    const { error } = this.state;
-    if (!error) return this.props.children;
+    const { error, resetKey } = this.state;
+    const { children, fallback, isolate } = this.props;
 
-    if (this.props.fallback) {
-      return this.props.fallback(error, this.reset);
+    if (!error) return <div key={resetKey}>{children}</div>;
+
+    if (fallback) {
+      const fallbackNode = fallback(error, this.reset);
+
+      return isolate ? (
+        <div
+          className="overflow-hidden rounded-xl border border-line bg-surface"
+        >
+          {fallbackNode}
+        </div>
+      ) : (
+        fallbackNode
+      );
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-base px-4">
+      <div
+        className={cn(
+          "flex items-center justify-center bg-base px-4",
+          isolate
+            ? "min-h-[260px] overflow-hidden rounded-xl border border-line bg-surface py-8"
+            : "min-h-screen"
+        )}
+      >
         <div className="w-full max-w-[400px] flex flex-col items-center gap-6 text-center">
           <div className="w-14 h-14 rounded-2xl bg-error-dim border border-error-dim-strong flex items-center justify-center">
             <HugeiconsIcon
@@ -61,7 +98,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-[12px] font-mono text-red break-all">
               {import.meta.env.DEV
                 ? error.message
-                : "See the browser console for details."}
+                : "Details are hidden in production."}
             </p>
           </div>
           <div className="flex items-center gap-3">

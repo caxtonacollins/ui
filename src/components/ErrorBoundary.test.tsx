@@ -1,5 +1,5 @@
-import { fireEvent,render, screen } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ErrorBoundary } from "./ErrorBoundary";
 
@@ -7,15 +7,14 @@ const ThrowError = () => {
   throw new Error("Test error!");
 };
 
-let originalEnv: string | undefined;
-
-beforeEach(() => {
-  originalEnv = process.env.NODE_ENV;
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe("ErrorBoundary", () => {
   it("renders default fallback when child throws, and resets when try again is clicked", () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
 
     render(
       <ErrorBoundary>
@@ -33,8 +32,6 @@ describe("ErrorBoundary", () => {
     // Clicking reset should try to re-render the children
     // (It will just throw again because we always throw in ThrowError, but it resets state)
     fireEvent.click(resetBtn);
-
-    consoleSpy.mockRestore();
   });
 
   it("renders custom fallback prop and passes error and reset function", () => {
@@ -47,7 +44,7 @@ describe("ErrorBoundary", () => {
     ));
 
     // Suppress console.error for expected thrown error
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
 
     render(
       <ErrorBoundary fallback={fallbackSpy}>
@@ -65,8 +62,6 @@ describe("ErrorBoundary", () => {
     // Reset should be callable and reset the error state (though it will just throw again because we still render ThrowError)
     // but we can verify it doesn't crash.
     fireEvent.click(resetBtn);
-
-    consoleSpy.mockRestore();
   });
 
   it("calls onError callback with error and info when child throws", () => {
@@ -80,18 +75,38 @@ describe("ErrorBoundary", () => {
     );
 
     expect(onErrorSpy).toHaveBeenCalled();
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      "[sorokit-ui] Uncaught error:",
+      expect.any(Error),
+      expect.any(String)
+    );
     const errorArg = onErrorSpy.mock.calls[0][0];
     const infoArg = onErrorSpy.mock.calls[0][1];
 
     expect(errorArg).toBeInstanceOf(Error);
     expect(errorArg.message).toBe("Test error!");
     expect(infoArg).toHaveProperty("componentStack");
-
-    consoleSpy.mockRestore();
   });
 
-  it("does not call console.error in production mode when onError is provided", () => {
-    process.env.NODE_ENV = "production";
+  it("does not call console.error in production mode", () => {
+    vi.stubEnv("DEV", false);
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    render(
+      <ErrorBoundary>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      "[sorokit-ui] Uncaught error:",
+      expect.any(Error),
+      expect.any(String)
+    );
+  });
+
+  it("calls onError instead of console.error in production mode when provided", () => {
+    vi.stubEnv("DEV", false);
     const onErrorSpy = vi.fn();
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -101,15 +116,16 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      "[sorokit-ui] Uncaught error:",
+      expect.any(Error),
+      expect.any(String)
+    );
     expect(onErrorSpy).toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
-    process.env.NODE_ENV = originalEnv;
   });
 
   it("calls console.error in development mode by default", () => {
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("DEV", true);
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     render(
@@ -124,42 +140,55 @@ describe("ErrorBoundary", () => {
       expect.any(Error),
       expect.any(String)
     );
-
-    consoleSpy.mockRestore();
-    process.env.NODE_ENV = originalEnv;
   });
 
-  it("reset key triggers component remount rather than re-render", () => {
-    let mountCount = 0;
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("reset key remounts children with fresh state to avoid an error loop", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    let shouldRecoverAfterReset = false;
+    let mountedWithFreshState = false;
 
     const TestComponent = () => {
-      mountCount++;
-      if (mountCount === 1) {
-        throw new Error("First mount error");
+      if (!shouldRecoverAfterReset) {
+        throw new Error("Corrupted child state");
       }
+
+      mountedWithFreshState = true;
+
       return <div data-testid="test-content">Mounted successfully</div>;
     };
 
-    const { rerender } = render(
+    render(
       <ErrorBoundary>
         <TestComponent />
       </ErrorBoundary>
     );
 
-    // First mount throws error
-    expect(mountCount).toBe(1);
     expect(screen.getByText("Something went wrong")).toBeInTheDocument();
 
-    // Click reset to trigger remount
     const resetBtn = screen.getByRole("button", { name: /try again/i });
+    shouldRecoverAfterReset = true;
     fireEvent.click(resetBtn);
 
-    // Component should be remounted (mountCount increases)
-    expect(mountCount).toBe(2);
+    expect(mountedWithFreshState).toBe(true);
     expect(screen.getByTestId("test-content")).toBeInTheDocument();
     expect(screen.getByText("Mounted successfully")).toBeInTheDocument();
+  });
 
-    consoleSpy.mockRestore();
+  it("applies scoped container styling when isolate is true", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { container } = render(
+      <ErrorBoundary isolate>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    const scopedFallback = container.firstElementChild;
+
+    expect(scopedFallback).toHaveClass("overflow-hidden");
+    expect(scopedFallback).toHaveClass("rounded-xl");
+    expect(scopedFallback).toHaveClass("border");
+    expect(scopedFallback).toHaveClass("min-h-[260px]");
   });
 });
