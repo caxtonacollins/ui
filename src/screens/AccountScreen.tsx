@@ -1,34 +1,19 @@
+import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+
 import { AccountCard } from "@/components/AccountCard";
 import { BalanceList } from "@/components/BalanceList";
 import { ClaimableBalanceCard } from "@/components/ClaimableBalanceCard";
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 
-function RefreshIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-    </svg>
-  );
-}
-
 export function AccountScreen() {
   const { isConnected, isLoadingAccount, refreshAccount } = useSorokit();
 
   return (
     <div className="flex flex-col gap-5">
+      <h2 className="text-[18px] font-semibold text-ink">Account</h2>
+      <p className="text-[13px] text-ink-3 -mt-3">Balances and account details</p>
       {isConnected && (
         <div className="flex justify-end">
           <Button
@@ -38,7 +23,7 @@ export function AccountScreen() {
             onClick={refreshAccount}
             aria-label="Refresh account data"
           >
-            <RefreshIcon />
+            <HugeiconsIcon icon={Refresh01Icon} size={14} strokeWidth={1.5} />
             Refresh
           </Button>
         </div>

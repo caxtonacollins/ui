@@ -1,6 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { Button } from "./Button";
 
 describe("Button", () => {
@@ -11,7 +10,8 @@ describe("Button", () => {
 
   it("renders a loading spinner when loading is true", () => {
     const { container } = render(<Button loading>Submit</Button>);
-    expect(screen.getByRole("button", { name: /Submit/ })).toBeInTheDocument();
+    // When loading, the sr-only "Loading" text is prepended to accessible name
+    expect(screen.getByRole("button", { name: "LoadingSubmit" })).toBeInTheDocument();
     // The spinner is a span with animate-spin class
     const spinner = container.querySelector(".animate-spin");
     expect(spinner).toBeInTheDocument();
@@ -26,7 +26,8 @@ describe("Button", () => {
 
   it("is disabled when loading is true", () => {
     render(<Button loading>Submit</Button>);
-    const button = screen.getByRole("button", { name: /Submit/ });
+    // When loading, the sr-only "Loading" text is prepended to accessible name
+    const button = screen.getByRole("button", { name: "LoadingSubmit" });
     expect(button).toBeDisabled();
   });
 

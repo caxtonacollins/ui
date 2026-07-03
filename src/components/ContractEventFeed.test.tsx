@@ -1,8 +1,13 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ContractEventFeed } from "./ContractEventFeed";
+import { act,fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
+import type { ContractEvent,SorokitClient } from "@/lib/client";
 import { getClient } from "@/lib/client";
-import type { SorokitClient, ContractEvent } from "@/lib/client";
+
+import { ContractEventFeed } from "./ContractEventFeed";
 
 vi.mock("@/lib/client", () => ({
   getClient: vi.fn(),
@@ -84,13 +89,13 @@ describe("ContractEventFeed", () => {
     });
   });
 
-  it("starts polling when pollInterval > 0 and live is true", async () => {
+  it("starts polling when autoRefresh > 0 and live is true", async () => {
     const getEvents = vi.fn().mockResolvedValue({ data: [], error: null });
     vi.mocked(getClient).mockReturnValue({
       soroban: { getEvents },
     } as unknown as SorokitClient);
 
-    render(<ContractEventFeed contractId={CONTRACT_ID} pollInterval={500} />);
+    render(<ContractEventFeed contractId={CONTRACT_ID} autoRefresh={500} />);
 
     // Initial load
     act(() => { vi.advanceTimersByTime(0); });
@@ -107,12 +112,12 @@ describe("ContractEventFeed", () => {
       soroban: { getEvents },
     } as unknown as SorokitClient);
 
-    render(<ContractEventFeed contractId={CONTRACT_ID} pollInterval={500} />);
+    render(<ContractEventFeed contractId={CONTRACT_ID} autoRefresh={500} />);
     act(() => { vi.advanceTimersByTime(0); });
     await waitFor(() => expect(getEvents).toHaveBeenCalledTimes(1));
 
     // Toggle to Paused
-    fireEvent.click(screen.getByRole("button", { name: /live/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pause live updates/i }));
     const callsAfterPause = getEvents.mock.calls.length;
 
     // Advance well past interval — no new calls should happen
@@ -138,7 +143,7 @@ describe("ContractEventFeed", () => {
 
     await waitFor(() => {
       expect(getEvents).toHaveBeenCalledTimes(2);
-      expect(getEvents).toHaveBeenLastCalledWith(NEW_ID, 10);
+      expect(getEvents).toHaveBeenLastCalledWith(NEW_ID, 100);
     });
   });
 
@@ -150,18 +155,18 @@ describe("ContractEventFeed", () => {
         soroban: { getEvents },
       } as unknown as SorokitClient);
 
-      render(<ContractEventFeed contractId={CONTRACT_ID} pollInterval={500} />);
+      render(<ContractEventFeed contractId={CONTRACT_ID} autoRefresh={500} />);
       act(() => { vi.advanceTimersByTime(0); });
       await waitFor(() => expect(getEvents).toHaveBeenCalledTimes(1));
 
-      const toggle = screen.getByRole("button", { name: /live/i });
+      const toggle = screen.getByRole("button", { name: /pause live updates/i });
       // Live while polling…
       expect(toggle).toHaveAttribute("aria-pressed", "true");
 
       // …and Paused after toggling off.
       fireEvent.click(toggle);
       expect(
-        screen.getByRole("button", { name: /paused/i }),
+        screen.getByRole("button", { name: /resume live updates/i }),
       ).toHaveAttribute("aria-pressed", "false");
     });
 
@@ -179,6 +184,45 @@ describe("ContractEventFeed", () => {
       await waitFor(() =>
         expect(container.querySelector('[aria-live="polite"]')).toBeInTheDocument(),
       );
+    });
+  });
+
+  // ── "Last updated" timestamp test (#59) ─────────────────────────────────────
+  describe("timestamp", () => {
+    it("renders 'last updated' timestamp after a poll completes", async () => {
+      const getEvents = vi.fn().mockResolvedValue({ data: [MOCK_EVENT], error: null });
+      vi.mocked(getClient).mockReturnValue({
+        soroban: { getEvents },
+      } as unknown as SorokitClient);
+
+      render(<ContractEventFeed contractId={CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => {
+        expect(screen.getByText(/last updated:/i)).toBeInTheDocument();
+      });
+      expect(screen.getByText(/just now/i)).toBeInTheDocument();
+    });
+
+    it("updates relative time string from 'just now' to '1m ago' after 60 seconds", async () => {
+      const getEvents = vi.fn().mockResolvedValue({ data: [MOCK_EVENT], error: null });
+      vi.mocked(getClient).mockReturnValue({
+        soroban: { getEvents },
+      } as unknown as SorokitClient);
+
+      const props = { contractId: CONTRACT_ID, autoRefresh: 0 as const };
+      const { rerender } = render(<ContractEventFeed {...props} />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => {
+        expect(screen.getByText(/just now/i)).toBeInTheDocument();
+      });
+
+      act(() => { vi.advanceTimersByTime(60_000); });
+      rerender(<ContractEventFeed {...props} />);
+
+      expect(screen.getByText(/1m ago/i)).toBeInTheDocument();
+      expect(screen.queryByText(/just now/i)).not.toBeInTheDocument();
     });
   });
 });

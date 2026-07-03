@@ -1,5 +1,7 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo,useState } from "react";
+
 import type { AccountData, Balance, NetworkInfo, NetworkName } from "@/lib/client";
+
 import {
   SorokitContext,
   type SorokitProviderProps,
@@ -125,6 +127,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       address,
       isConnected: !!address,
       isConnecting,
+      isLoading: isConnecting || isLoadingAccount,
       connectWallet,
       disconnectWallet,
       account,
@@ -139,11 +142,11 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     [
       address,
       isConnecting,
+      isLoadingAccount,
       connectWallet,
       disconnectWallet,
       account,
       balances,
-      isLoadingAccount,
       refreshAccount,
       network,
       switchNetwork,
