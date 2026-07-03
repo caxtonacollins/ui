@@ -1,9 +1,20 @@
-import { render, screen, act, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SorokitProvider } from "@/context/SorokitProvider";
-import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { AccountCard } from "@/components/AccountCard";
+import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { SorokitProvider } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
+
+// The connected WalletConnectButton opens a management modal rather than
+// exposing a direct "Disconnect" control, so drive disconnect through context.
+const DisconnectTrigger = () => {
+  const { disconnectWallet } = useSorokit();
+  // Avoid the substring "connect" so it doesn't collide with the /connect/i query.
+  return <button onClick={() => disconnectWallet()}>Test Sign Out</button>;
+};
 
 describe("Wallet Connect Flow Integration", () => {
   let mockClient: ReturnType<typeof getClient>;
@@ -30,6 +41,7 @@ describe("Wallet Connect Flow Integration", () => {
       <SorokitProvider client={mockClient}>
         <WalletConnectButton />
         <AccountCard />
+        <DisconnectTrigger />
       </SorokitProvider>
     );
 
@@ -51,9 +63,8 @@ describe("Wallet Connect Flow Integration", () => {
       expect(screen.getByText(/123456789/i)).toBeInTheDocument(); // Sequence number
     });
 
-    // Action 2: Disconnect Wallet
-    // The WalletConnectButton usually turns into a Disconnect button when connected
-    const disconnectBtn = screen.getByRole("button", { name: /disconnect/i });
+    // Action 2: Disconnect Wallet (via context; connected button opens a modal instead)
+    const disconnectBtn = screen.getByRole("button", { name: /sign out/i });
     await act(async () => {
       fireEvent.click(disconnectBtn);
     });

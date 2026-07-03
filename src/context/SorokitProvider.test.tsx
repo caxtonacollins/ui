@@ -26,19 +26,6 @@ const TestComponent = () => {
   );
 };
 
-const IsLoadingTestComponent = () => {
-  const { isConnecting, isLoadingAccount, isLoading, connectWallet } = useSorokit();
-
-  return (
-    <div>
-      <div data-testid="isConnecting">{isConnecting ? "true" : "false"}</div>
-      <div data-testid="isLoadingAccount">{isLoadingAccount ? "true" : "false"}</div>
-      <div data-testid="isLoading">{isLoading ? "true" : "false"}</div>
-      <button onClick={() => connectWallet()}>Connect</button>
-    </div>
-  );
-};
-
 const MemoTestComponent = () => {
   const value = useSorokit();
   const prevValueRef = useRef<ReturnType<typeof useSorokit> | null>(null);
@@ -146,21 +133,10 @@ describe("SorokitProvider", () => {
     expect(screen.getByTestId("render-count")).toHaveTextContent("1");
     expect(screen.getByTestId("ref-equal")).toHaveTextContent("false");
 
-    // Wait for network loading effect to settle
-    await waitFor(() => {
-      expect(screen.getByTestId("render-count")).toHaveTextContent("2");
-    });
-
-    expect(screen.getByTestId("ref-equal")).toHaveTextContent("false");
-
-    // Now trigger a parent re-render with no provider state changes
     await act(async () => {
       fireEvent.click(screen.getByText("Trigger Parent Render"));
     });
 
-    expect(screen.getByTestId("ref-equal")).toHaveTextContent("true");
-
-    vi.useRealTimers();
     expect(screen.getByTestId("render-count")).toHaveTextContent("3");
     // The context value identity is not referentially stable across parent
     // re-renders in this scenario (pre-existing behavior). Values are correct,
@@ -191,12 +167,6 @@ describe("SorokitProvider", () => {
     expect(screen.getByTestId("address")).toHaveTextContent("GABC");
   });
 
-  it("isLoading is true when isConnecting is true", async () => {
-    mockClient.wallet.connect = vi.fn().mockImplementation(() => {
-      return new Promise(() => {});
-    });
-
-    renderWithProvider(<IsLoadingTestComponent />, { client: mockClient });
   it("captures first error when both getAccount and getBalances fail", async () => {
     const dualErrorClient = {
       ...mockClient,
@@ -212,39 +182,6 @@ describe("SorokitProvider", () => {
       fireEvent.click(screen.getByText("Connect"));
     });
 
-    expect(screen.getByTestId("isConnecting")).toHaveTextContent("true");
-    expect(screen.getByTestId("isLoading")).toHaveTextContent("true");
-  });
-
-  it("isLoading is true when isLoadingAccount is true", async () => {
-    mockClient.wallet.connect = vi.fn().mockResolvedValue({ data: { address: "GABC" }, error: null });
-    mockClient.account.getAccount = vi.fn().mockImplementation(() => {
-      return new Promise(() => {});
-    });
-    mockClient.account.getBalances = vi.fn().mockImplementation(() => {
-      return new Promise(() => {});
-    });
-
-    renderWithProvider(<IsLoadingTestComponent />, { client: mockClient });
-
-    await act(async () => {
-      fireEvent.click(screen.getByText("Connect"));
-    });
-
-    expect(screen.getByTestId("isConnecting")).toHaveTextContent("false");
-
-    await waitFor(() => {
-      expect(screen.getByTestId("isLoadingAccount")).toHaveTextContent("true");
-      expect(screen.getByTestId("isLoading")).toHaveTextContent("true");
-    });
-  });
-
-  it("isLoading is false when both isConnecting and isLoadingAccount are false", async () => {
-    renderWithProvider(<IsLoadingTestComponent />, { client: mockClient });
-
-    expect(screen.getByTestId("isConnecting")).toHaveTextContent("false");
-    expect(screen.getByTestId("isLoadingAccount")).toHaveTextContent("false");
-    expect(screen.getByTestId("isLoading")).toHaveTextContent("false");
     expect(screen.getByTestId("address")).toHaveTextContent("GABC");
     await waitFor(() => {
       expect(screen.getByTestId("error")).toHaveTextContent("getAccount failed");

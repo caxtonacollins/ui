@@ -1,8 +1,11 @@
-import { render, screen, act, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SorokitProvider } from "@/context/SorokitProvider";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { TransactionPanel } from "@/components/TransactionPanel";
-import { getClient } from "@/lib/client";
+import { SorokitProvider } from "@/context/SorokitProvider";
+import { useSorokit } from "@/context/useSorokit";
+import { getClient, initClient } from "@/lib/client";
 
 describe("Payment Flow Integration", () => {
   let mockClient: ReturnType<typeof getClient>;
@@ -23,9 +26,20 @@ describe("Payment Flow Integration", () => {
         switchNetwork: vi.fn().mockResolvedValue({ data: { name: "testnet" }, error: null }),
       },
       transaction: {
-        submit: vi.fn().mockResolvedValue({ data: { hash: "txhash123", ledger: 100 }, error: null }),
+        // Delay resolution so the transient "Submitting…" loading state is observable.
+        submit: vi.fn().mockImplementation(
+          () =>
+            new Promise((resolve) =>
+              setTimeout(
+                () => resolve({ data: { hash: "txhash123", ledger: 100 }, error: null }),
+                50,
+              ),
+            ),
+        ),
       }
     } as unknown as ReturnType<typeof getClient>;
+    // TransactionPanel calls the module-level getClient(); wire it to the mock.
+    initClient(mockClient);
   });
 
   it("submits payment with correct destination, amount, and source", async () => {
@@ -44,7 +58,7 @@ describe("Payment Flow Integration", () => {
     };
 
     const ConnectTrigger = () => {
-      const { connectWallet } = require("@/context/useSorokit").useSorokit();
+      const { connectWallet } = useSorokit();
       return <button onClick={() => connectWallet()}>Test Connect</button>;
     };
 
@@ -70,7 +84,7 @@ describe("Payment Flow Integration", () => {
     });
 
     // Verify loading state appears
-    expect(screen.getByRole("button", { name: "Submitting…" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /submitting/i })).toBeInTheDocument();
 
     // Verify success state renders
     await waitFor(() => {

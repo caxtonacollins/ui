@@ -182,7 +182,7 @@ describe("TransactionPanel", () => {
   });
 
   it("preserves form values when clicking Try Again after error", async () => {
-    const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Transaction failed" });
+    const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Insufficient balance" });
 
     vi.mocked(getClient).mockReturnValue({
       transaction: {
@@ -208,7 +208,7 @@ describe("TransactionPanel", () => {
 
     // Verify values are set
     expect(destInput).toHaveValue(validDest);
-    expect(amountInput).toHaveValue(testAmount);
+    expect(amountInput).toHaveValue(Number(testAmount));
     expect(memoInput).toHaveValue(testMemo);
 
     // Submit to trigger error
@@ -223,7 +223,7 @@ describe("TransactionPanel", () => {
 
     // Verify form values are preserved (not cleared)
     expect(destInput).toHaveValue(validDest);
-    expect(amountInput).toHaveValue(testAmount);
+    expect(amountInput).toHaveValue(Number(testAmount));
     expect(memoInput).toHaveValue(testMemo);
   });
 });

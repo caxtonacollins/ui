@@ -1,12 +1,12 @@
 /**
  * Sorokit UI - React components for Stellar/Soroban development
- * 
+ *
  * @packageDocumentation
- * 
+ *
  * @example
  * ```tsx
  * import { SorokitProvider, SorobanPanel } from 'sorokit-ui';
- * 
+ *
  * export function App() {
  *   return (
  *     <SorokitProvider>
@@ -17,25 +17,6 @@
  * ```
  */
 
-// Export all components
-export { SorobanPanel } from './SorobanPanel';
-export { TransactionPanel } from './TransactionPanel';
-export { ErrorBoundary } from './ErrorBoundary';
-export type { ErrorBoundaryProps } from './ErrorBoundary';
-export { FeeEstimator } from './FeeEstimator';
-export type { FeeEstimatorProps } from './FeeEstimator';
-export { ContractEventFeed } from './ContractEventFeed';
-export type { ContractEventFeedProps } from './ContractEventFeed';
-
-// Export providers and hooks
-export { SorokitProvider } from '../context/SorokitProvider';
-export { useSorokit } from '../context/useSorokit';
-
-// Export primitive UI components
-export { Separator } from './ui/Separator';
-
-// Export types
-export type { SorokitClient, Transaction, ContractEvent } from '../lib/client';
 import "../styles.css";
 
 // UI primitives
@@ -83,6 +64,10 @@ export { SorobanPanel } from "./SorobanPanel";
 
 // Utilities
 export { QRCode } from "./QRCode";
+
+// Providers and hooks
+export { SorokitProvider } from "../context/SorokitProvider";
+export { useSorokit } from "../context/useSorokit";
 
 // Types
 export type {

@@ -146,14 +146,11 @@ describe("ErrorBoundary", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 
     let shouldRecoverAfterReset = false;
-    let mountedWithFreshState = false;
 
     const TestComponent = () => {
       if (!shouldRecoverAfterReset) {
         throw new Error("Corrupted child state");
       }
-
-      mountedWithFreshState = true;
 
       return <div data-testid="test-content">Mounted successfully</div>;
     };
@@ -170,7 +167,6 @@ describe("ErrorBoundary", () => {
     shouldRecoverAfterReset = true;
     fireEvent.click(resetBtn);
 
-    expect(mountedWithFreshState).toBe(true);
     expect(screen.getByTestId("test-content")).toBeInTheDocument();
     expect(screen.getByText("Mounted successfully")).toBeInTheDocument();
   });

@@ -48,9 +48,9 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
         .then(([accountRes, balancesRes]) => {
           if (!active) return;
           if (accountRes.data) setAccount(accountRes.data);
-          if (accountRes.error) setError(accountRes.error);
           if (balancesRes.data) setBalances(balancesRes.data);
-          if (balancesRes.error) setError(balancesRes.error);
+          if (accountRes.error) setError(accountRes.error);
+          else if (balancesRes.error) setError(balancesRes.error);
         })
         .finally(() => {
           if (active) setIsLoadingAccount(false);
@@ -114,9 +114,9 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
         client.account.getBalances(address),
       ]);
       if (accountRes.data) setAccount(accountRes.data);
-      if (accountRes.error) setError(accountRes.error);
       if (balancesRes.data) setBalances(balancesRes.data);
-      if (balancesRes.error) setError(balancesRes.error);
+      if (accountRes.error) setError(accountRes.error);
+      else if (balancesRes.error) setError(balancesRes.error);
     } finally {
       setIsLoadingAccount(false);
     }
