@@ -1,8 +1,14 @@
+import {
+  AlertCircleIcon,
+  CheckmarkCircle01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useId, useState } from "react";
-import { useSorokit } from "@/context/useSorokit";
+
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
+import { useSorokit } from "@/context/useSorokit";
 import { getClient, type NetworkInfo, type TxResult } from "@/lib/client";
 import { cn } from "@/lib/utils";
 
@@ -133,7 +139,13 @@ export function TransactionPanel() {
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-success-dim flex items-center justify-center shrink-0">
-                <CheckCircleIcon className="text-green" />
+                <HugeiconsIcon
+                  icon={CheckmarkCircle01Icon}
+                  size={18}
+                  color="currentColor"
+                  strokeWidth={1.5}
+                  className="text-green"
+                />
               </div>
               <div>
                 <p className="text-[14px] font-semibold text-ink">
@@ -182,7 +194,13 @@ export function TransactionPanel() {
         ) : state === "error" ? (
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-full bg-error-dim flex items-center justify-center shrink-0 mt-0.5">
-              <AlertCircleIcon className="text-red" />
+              <HugeiconsIcon
+                icon={AlertCircleIcon}
+                size={18}
+                color="currentColor"
+                strokeWidth={1.5}
+                className="text-red"
+              />
             </div>
             <div>
               <p className="text-[14px] font-semibold text-ink">
@@ -344,47 +362,6 @@ function Select({ label, className, id, children, ...props }: SelectProps) {
         {children}
       </select>
     </div>
-  );
-}
-
-function CheckCircleIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="m8.5 12 2.5 2.5 4.5-5" />
-    </svg>
-  );
-}
-
-function AlertCircleIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7.5v5" />
-      <path d="M12 16h.01" />
-    </svg>
   );
 }
 

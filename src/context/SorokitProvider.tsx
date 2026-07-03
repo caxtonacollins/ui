@@ -1,5 +1,7 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo,useState } from "react";
+
 import type { AccountData, Balance, NetworkInfo, NetworkName } from "@/lib/client";
+
 import {
   SorokitContext,
   type SorokitProviderProps,
@@ -46,9 +48,9 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
         .then(([accountRes, balancesRes]) => {
           if (!active) return;
           if (accountRes.data) setAccount(accountRes.data);
-          if (accountRes.error) setError(accountRes.error);
           if (balancesRes.data) setBalances(balancesRes.data);
-          if (balancesRes.error) setError(balancesRes.error);
+          if (accountRes.error) setError(accountRes.error);
+          else if (balancesRes.error) setError(balancesRes.error);
         })
         .finally(() => {
           if (active) setIsLoadingAccount(false);
@@ -112,9 +114,9 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
         client.account.getBalances(address),
       ]);
       if (accountRes.data) setAccount(accountRes.data);
-      if (accountRes.error) setError(accountRes.error);
       if (balancesRes.data) setBalances(balancesRes.data);
-      if (balancesRes.error) setError(balancesRes.error);
+      if (accountRes.error) setError(accountRes.error);
+      else if (balancesRes.error) setError(balancesRes.error);
     } finally {
       setIsLoadingAccount(false);
     }
@@ -125,6 +127,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       address,
       isConnected: !!address,
       isConnecting,
+      isLoading: isConnecting || isLoadingAccount,
       connectWallet,
       disconnectWallet,
       account,
@@ -139,11 +142,11 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     [
       address,
       isConnecting,
+      isLoadingAccount,
       connectWallet,
       disconnectWallet,
       account,
       balances,
-      isLoadingAccount,
       refreshAccount,
       network,
       switchNetwork,
