@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -23,11 +23,18 @@ export function SorobanPanel({
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const canInvoke = isConnected && contractId.trim() && method.trim();
 
   async function doInvoke() {
     if (!canInvoke) return;
+
+    // Cancel previous requests
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setState("loading");
     setError(null);
     setResult(null);
@@ -37,14 +44,15 @@ export function SorobanPanel({
         try {
           const parsed = JSON.parse(args.trim());
           if (!Array.isArray(parsed)) {
-            setError('Arguments must be a JSON array (e.g. ["arg1", 42])');
-            setState("error");
+            if (!signal.aborted)
+              setError('Arguments must be a JSON array (e.g. ["arg1", 42])');
+            if (!signal.aborted) setState("error");
             return;
           }
           parsedArgs = parsed;
         } catch {
-          setError("Invalid JSON in arguments");
-          setState("error");
+          if (!signal.aborted) setError("Invalid JSON in arguments");
+          if (!signal.aborted) setState("error");
           return;
         }
       }
@@ -54,6 +62,7 @@ export function SorobanPanel({
         args: parsedArgs,
         sourceAccount: address ?? undefined,
       });
+      if (signal.aborted) return;
       if (err) {
         setError(err);
         setState("error");
@@ -62,8 +71,11 @@ export function SorobanPanel({
       setResult(data);
       setState("success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
-      setState("error");
+      if (!signal.aborted) {
+        const message = e instanceof Error ? e.message : "Unknown error";
+        setError(message);
+        setState("error");
+      }
     }
   }
 

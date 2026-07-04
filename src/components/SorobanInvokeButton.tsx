@@ -40,9 +40,15 @@ export function SorobanInvokeButton({
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const isInvokingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   async function invoke() {
     if (!isConnected || isInvokingRef.current) return;
+
+    // Cancel previous requests
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     isInvokingRef.current = true;
     setState("loading");
@@ -52,6 +58,7 @@ export function SorobanInvokeButton({
     try {
       const { data, error: err } =
         await getClient().soroban.invokeContract(params);
+      if (signal.aborted) return;
       if (err) {
         const message = friendlyError(err);
         setError(message);
@@ -63,11 +70,13 @@ export function SorobanInvokeButton({
       setState("success");
       onSuccess?.(data);
     } catch (e) {
-      const rawMessage = e instanceof Error ? e.message : "Unknown error";
-      const msg = friendlyError(rawMessage);
-      setError(msg);
-      setState("error");
-      onError?.(msg);
+      if (!signal.aborted) {
+        const rawMessage = e instanceof Error ? e.message : "Unknown error";
+        const msg = friendlyError(rawMessage);
+        setError(msg);
+        setState("error");
+        onError?.(msg);
+      }
     } finally {
       isInvokingRef.current = false;
     }

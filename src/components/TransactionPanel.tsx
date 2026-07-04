@@ -3,7 +3,7 @@ import {
   CheckmarkCircle01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -27,7 +27,10 @@ const MEMO_TYPES: { value: MemoType; label: string }[] = [
  * Returns `null` for networks Stellar Expert does not index (e.g. futurenet,
  * localnet), in which case the hash is shown as plain text.
  */
-function explorerTxUrl(network: NetworkInfo | null, hash: string): string | null {
+function explorerTxUrl(
+  network: NetworkInfo | null,
+  hash: string,
+): string | null {
   if (!network) return null;
   const segment =
     network.name === "mainnet"
@@ -51,6 +54,7 @@ export function TransactionPanel() {
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<TxResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const assetOptions = balances ?? [];
 
@@ -83,6 +87,12 @@ export function TransactionPanel() {
       return;
     }
     if (!canSubmit) return;
+
+    // Cancel previous requests
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setState("loading");
     setError(null);
     setResult(null);
@@ -93,8 +103,10 @@ export function TransactionPanel() {
         amount: amount.trim(),
         asset: selectedAsset,
         memoType,
-        memo: memoType !== "none" && memo.trim() !== "" ? memo.trim() : undefined,
+        memo:
+          memoType !== "none" && memo.trim() !== "" ? memo.trim() : undefined,
       });
+      if (signal.aborted) return;
       if (err) {
         setError(err);
         setState("error");
@@ -108,8 +120,10 @@ export function TransactionPanel() {
       setDestDirty(false);
       setAmountDirty(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
-      setState("error");
+      if (!signal.aborted) {
+        setError(e instanceof Error ? e.message : "Unknown error");
+        setState("error");
+      }
     }
   }
 
@@ -151,7 +165,9 @@ export function TransactionPanel() {
                 <p className="text-[14px] font-semibold text-ink">
                   Transaction submitted
                 </p>
-                <p className="text-[12px] text-ink-3">Ledger #{result.ledger}</p>
+                <p className="text-[12px] text-ink-3">
+                  Ledger #{result.ledger}
+                </p>
               </div>
             </div>
             <div className="rounded-lg bg-surface-2 border border-line px-5 py-4 flex flex-col gap-3">
@@ -340,11 +356,15 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 
 function Select({ label, className, id, children, ...props }: SelectProps) {
   const generatedId = useId();
-  const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-") ?? generatedId;
+  const selectId =
+    id ?? label?.toLowerCase().replace(/\s+/g, "-") ?? generatedId;
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={selectId} className="text-[12px] font-medium text-ink-2">
+        <label
+          htmlFor={selectId}
+          className="text-[12px] font-medium text-ink-2"
+        >
           {label}
         </label>
       )}

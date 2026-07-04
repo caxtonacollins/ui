@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo,useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { AccountData, Balance, NetworkInfo, NetworkName } from "@/lib/client";
+import type {
+  AccountData,
+  Balance,
+  NetworkInfo,
+  NetworkName,
+} from "@/lib/client";
 
-import {
-  SorokitContext,
-  type SorokitProviderProps,
-} from "./sorokit-context";
+import { SorokitContext, type SorokitProviderProps } from "./SorokitContext";
 
 export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
@@ -156,8 +158,6 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
   );
 
   return (
-    <SorokitContext.Provider value={value}>
-      {children}
-    </SorokitContext.Provider>
+    <SorokitContext.Provider value={value}>{children}</SorokitContext.Provider>
   );
 }

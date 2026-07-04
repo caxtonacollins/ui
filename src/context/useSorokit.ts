@@ -1,6 +1,6 @@
 import { useContext } from "react";
 
-import { SorokitContext, type SorokitState } from "./sorokit-context";
+import { SorokitContext, type SorokitState } from "./SorokitContext";
 
 const safeDefaults: SorokitState = {
   address: null,
