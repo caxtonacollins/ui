@@ -1,11 +1,12 @@
-import type { SorokitClient, Balance, Transaction, ContractEvent } from './client';
-import { DeterministicMockData } from './deterministic-mock';
+import type { AccountData, Balance, InvokeParams, NetworkInfo, NetworkName, SorokitClient, TxStatus } from './client';
+import { deterministicMock } from './deterministic-mock';
 
-/**
- * Valid Stellar Ed25519 public key (base32: G + 55 chars A-Z2-7)
- * Verified against Stellar's key format: starts with G, 56 total chars, alphabet A-Z2-7
- */
-export const MOCK_ADDRESS = 'GBSZCAHASQRY4ZCZZKSB47AMVUDKDVZQAGVHGSV3ZVZYAZ6ZGKR2GKBF';
+// Valid Stellar testnet address (56 chars: G + 55 uppercase alphanumeric)
+export const MOCK_ADDRESS = 'GBRPYHIL2CI3WHGSUJGY6O7SROQOMJG7QBCACN4QPKUOQNXJDGONXHPA';
+
+// Generate deterministic mock data (consistent across test runs)
+export const MOCK_HISTORY = deterministicMock.generateMockHistory(5);
+export const MOCK_EVENTS = deterministicMock.generateMockEvents(3);
 
 export const NETWORKS = {
   testnet: {
@@ -18,66 +19,49 @@ export const NETWORKS = {
   },
 };
 
-const VALID_NETWORKS = new Set(['mainnet', 'testnet', 'futurenet', 'localnet']);
+const MOCK_NETWORK_INFO: Record<string, NetworkInfo> = {
+  testnet: {
+    name: 'testnet',
+    passphrase: 'Test SDF Network ; September 2015',
+    rpcUrl: 'https://soroban-testnet.stellar.org',
+    horizonUrl: 'https://horizon-testnet.stellar.org',
+  },
+  public: {
+    name: 'mainnet',
+    passphrase: 'Public Global Stellar Network ; September 2015',
+    rpcUrl: 'https://soroban.stellar.org',
+    horizonUrl: 'https://horizon.stellar.org',
+  },
+};
+
+const MOCK_ACCOUNT: AccountData = {
+  address: MOCK_ADDRESS,
+  sequence: '123456789',
+  subentryCount: 0,
+};
 
 const MOCK_BALANCES: Balance[] = [
-  {
-    asset: 'XLM',
-    balance: '1000.0000000',
-    assetType: 'native',
-  },
-  {
-    asset: 'USDC',
-    balance: '250.0000000',
-    assetType: 'credit_alphanum4',
-    assetCode: 'USDC',
-    assetIssuer: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN',
-  },
+  { asset: 'XLM', balance: '10000.0000000', assetType: 'native' },
 ];
 
 /**
- * Generate deterministic mock transaction history.
- * Creates a new DeterministicMockData instance with a fixed seed each call
- * so snapshots are always reproducible.
+ * Create a mock client that satisfies the SorokitClient interface.
+ * If called with an invalid network name, returns the error object
+ * (backward compatible with simple-error tests).
  */
-export function generateMockHistory(count: number = 5): Transaction[] {
-  const mock = new DeterministicMockData(12345);
-  return Array.from({ length: count }, (_, i) => ({
-    hash: mock.generateTransactionHash(),
-    ledger: 1000000 + i,
-    createdAt: new Date(1700000000000 - i * 1000).toISOString(),
-    successful: true,
-    operationCount: 1,
-    feePaid: '100',
-    memo: undefined,
-  }));
-}
+export function createMockClient(): SorokitClient;
+export function createMockClient(networkName: string): SorokitClient | { data: null; error: string };
+export function createMockClient(networkName?: string): SorokitClient | { data: null; error: string } {
+  const activeNetwork = networkName && networkName in NETWORKS ? networkName : 'testnet';
 
-/**
- * Generate deterministic mock contract events.
- */
-export function generateMockEvents(count: number = 3): ContractEvent[] {
-  const mock = new DeterministicMockData(12345);
-  return Array.from({ length: count }, (_, i) => ({
-    id: mock.generateEventId(),
-    contractId: mock.generateHex(56),
-    type: 'contract_event',
-    ledger: 1000000 + i,
-    createdAt: new Date(1700000000000 - i * 500).toISOString(),
-    topics: [mock.generateHex(32), mock.generateHex(32)],
-    value: mock.generateHex(64),
-  }));
-}
+  if (networkName && !(networkName in NETWORKS)) {
+    const validNetworks = Object.keys(NETWORKS).join(', ');
+    return {
+      data: null,
+      error: `Unknown network: ${networkName}. Valid networks: ${validNetworks}`,
+    };
+  }
 
-// Kept for backward compatibility with legacy imports
-export const MOCK_HISTORY = generateMockHistory(5);
-export const MOCK_EVENTS = generateMockEvents(3);
-
-/**
- * Create a full SorokitClient-compatible mock client for tests.
- * All methods return resolved promises so tests don't need real network access.
- */
-export function createMockClient(): SorokitClient {
   return {
     wallet: {
       connect: async () => ({
@@ -88,58 +72,34 @@ export function createMockClient(): SorokitClient {
       disconnect: async () => {},
       getAddress: async () => ({ data: MOCK_ADDRESS, error: null }),
     },
-
     account: {
-      getAccount: async (address: string) => ({
-        data: {
-          address,
-          sequence: '1',
-          subentryCount: 2,
-        },
+      getAccount: async () => ({
+        data: MOCK_ACCOUNT,
         error: null,
         status: 'success',
       }),
-      getBalances: async (_address: string) => ({
-        data: MOCK_BALANCES,
-        error: null,
-      }),
-      getClaimableBalances: async (_address: string) => ({
-        data: [],
-        error: null,
-      }),
-      claimBalance: async (_balanceId: string) => ({
-        data: { hash: 'mock-hash', ledger: 1, successful: true },
-        error: null,
-      }),
+      getBalances: async () => ({ data: MOCK_BALANCES, error: null }),
+      getClaimableBalances: async () => ({ data: [], error: null }),
+      claimBalance: async () => ({ data: null, error: null }),
     },
-
     transaction: {
-      submit: async (_tx: unknown) => ({
-        data: { hash: 'mock-hash', ledger: 1, successful: true },
+      submit: async () => ({
+        data: { hash: deterministicMock.generateTransactionHash(), ledger: 12345, successful: true },
         error: null,
         status: 'success',
       }),
-      getStatus: async (_txHash: string) => ({
-        data: 'success' as const,
-        error: null,
-      }),
+      getStatus: async () => ({ data: 'success' as TxStatus, error: null }),
       getHistory: async (_address: string, _page?: number, limit?: number) => {
-        const all = generateMockHistory(10);
-        const records = limit ? all.slice(0, limit) : all;
-        return {
-          data: records,
-          error: null,
-          total: all.length,
-        };
+        const history = MOCK_HISTORY.slice(0, limit ?? MOCK_HISTORY.length);
+        return { data: history, error: null, total: history.length };
       },
       estimateFee: async () => ({
-        data: { baseFee: '100', recommended: '200' },
+        data: { baseFee: '100', recommended: '1000' },
         error: null,
       }),
     },
-
     soroban: {
-      invokeContract: async (_params) => ({
+      invokeContract: async (_params: InvokeParams) => ({
         data: null,
         error: null,
         status: 'success',
@@ -149,31 +109,18 @@ export function createMockClient(): SorokitClient {
         error: null,
       }),
     },
-
     network: {
       getNetwork: async () => ({
-        data: {
-          name: 'testnet' as const,
-          passphrase: NETWORKS.testnet.passphrase,
-          rpcUrl: NETWORKS.testnet.rpc_url,
-          horizonUrl: 'https://horizon-testnet.stellar.org',
-        },
+        data: MOCK_NETWORK_INFO[activeNetwork],
         error: null,
       }),
-      switchNetwork: async (network) => {
-        if (!VALID_NETWORKS.has(network)) {
-          return { data: null, error: `Invalid network: ${network}` };
+      switchNetwork: async (name: NetworkName) => {
+        const info = MOCK_NETWORK_INFO[name];
+        if (info) {
+          return { data: info, error: null };
         }
-        return {
-          data: {
-            name: network,
-            passphrase: '',
-            rpcUrl: '',
-            horizonUrl: '',
-          },
-          error: null,
-        };
+        return { data: null, error: `Invalid network: ${name}` };
       },
     },
-  };
+  } as SorokitClient;
 }

@@ -1,178 +1,188 @@
-import { useState } from "react";
-import { getClient } from "@/lib/client";
+import { useRef, useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
+import { getClient } from "@/lib/client";
 
-export interface SorobanPanelProps {
-  /** The Soroban contract ID — controlled by the parent */
+type State = "idle" | "loading" | "success" | "error";
+
+interface SorobanPanelProps {
   contractId: string;
-  /** Called whenever the user edits the contract ID input */
-  onContractIdChange?: (id: string) => void;
-  className?: string;
+  onContractIdChange: (contractId: string) => void;
 }
-
-type InvokeStatus = "idle" | "loading" | "success" | "error";
 
 export function SorobanPanel({
   contractId,
   onContractIdChange,
-  className,
 }: SorobanPanelProps) {
-  const { address } = useSorokit();
-
+  const { isConnected, address } = useSorokit();
   const [method, setMethod] = useState("");
-  const [argsRaw, setArgsRaw] = useState("");
-  const [status, setStatus] = useState<InvokeStatus>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [args, setArgs] = useState("");
+  const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<unknown>(null);
+  const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const canInvoke = contractId.trim().length > 0 && method.trim().length > 0;
+  const canInvoke = isConnected && contractId.trim() && method.trim();
 
-  async function handleInvoke() {
+  async function doInvoke() {
     if (!canInvoke) return;
 
-    // Validate JSON args
-    let parsedArgs: unknown[] = [];
-    if (argsRaw.trim()) {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(argsRaw.trim());
-      } catch {
-        setError("Invalid JSON in arguments. Please provide a valid JSON array.");
-        setStatus("error");
-        return;
-      }
-      if (!Array.isArray(parsed)) {
-        setError("Arguments must be a JSON array (e.g. [\"arg1\", 42]).");
-        setStatus("error");
-        return;
-      }
-      parsedArgs = parsed;
-    }
+    // Cancel previous requests
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
-    setStatus("loading");
+    setState("loading");
     setError(null);
     setResult(null);
-
     try {
-      const { data, error: invokeError } = await getClient().soroban.invokeContract({
+      let parsedArgs: unknown[] = [];
+      if (args.trim()) {
+        try {
+          const parsed = JSON.parse(args.trim());
+          if (!Array.isArray(parsed)) {
+            if (!signal.aborted)
+              setError('Arguments must be a JSON array (e.g. ["arg1", 42])');
+            if (!signal.aborted) setState("error");
+            return;
+          }
+          parsedArgs = parsed;
+        } catch {
+          if (!signal.aborted) setError("Invalid JSON in arguments");
+          if (!signal.aborted) setState("error");
+          return;
+        }
+      }
+      const { data, error: err } = await getClient().soroban.invokeContract({
         contractId: contractId.trim(),
         method: method.trim(),
         args: parsedArgs,
         sourceAccount: address ?? undefined,
       });
-
-      if (invokeError) {
-        setError(invokeError);
-        setStatus("error");
-      } else {
-        setResult(data);
-        setStatus("success");
+      if (signal.aborted) return;
+      if (err) {
+        setError(err);
+        setState("error");
+        return;
       }
+      setResult(data);
+      setState("success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
-      setStatus("error");
+      if (!signal.aborted) {
+        const message = e instanceof Error ? e.message : "Unknown error";
+        setError(message);
+        setState("error");
+      }
     }
   }
 
-  function handleClear() {
-    setStatus("idle");
-    setError(null);
-    setResult(null);
-    setMethod("");
-    setArgsRaw("");
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    doInvoke();
+  }
+
+  function handleClick() {
+    doInvoke();
   }
 
   return (
-    <div className={className}>
-      {/* Contract ID row — controlled externally */}
-      <div className="mb-4">
-        <label
-          htmlFor="soroban-contract-id"
-          className="block text-[12px] font-medium text-ink-2 mb-1.5"
-        >
-          Contract ID
-        </label>
-        <input
-          id="soroban-contract-id"
-          type="text"
-          placeholder="C..."
-          value={contractId}
-          onChange={(e) => onContractIdChange?.(e.target.value)}
-          className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-1 focus:ring-brand"
-        />
-      </div>
-
-      {/* Method */}
-      <div className="mb-4">
-        <label
-          htmlFor="soroban-method"
-          className="block text-[12px] font-medium text-ink-2 mb-1.5"
-        >
-          Method
-        </label>
-        <input
-          id="soroban-method"
-          type="text"
-          placeholder="transfer"
-          value={method}
-          onChange={(e) => setMethod(e.target.value)}
-          className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-1 focus:ring-brand"
-        />
-      </div>
-
-      {/* Arguments */}
-      <div className="mb-4">
-        <label
-          htmlFor="soroban-args"
-          className="block text-[12px] font-medium text-ink-2 mb-1.5"
-        >
-          Arguments (JSON array)
-        </label>
-        <input
-          id="soroban-args"
-          type="text"
-          placeholder='["arg1", 42]'
-          value={argsRaw}
-          onChange={(e) => setArgsRaw(e.target.value)}
-          className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-1 focus:ring-brand"
-        />
-      </div>
-
-      {/* Invoke button */}
-      <button
-        type="button"
-        disabled={!canInvoke || status === "loading"}
-        onClick={handleInvoke}
-        className="w-full rounded-lg bg-brand text-white h-9 px-4 text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {status === "loading" ? "Invoking…" : "Invoke"}
-      </button>
-
-      {/* Error */}
-      {(status === "error" || error) && (
-        <div className="mt-3 rounded-lg bg-error-dim border border-error-dim-strong px-4 py-3">
-          <p className="text-[13px] text-red">{error}</p>
+    <div className="rounded-xl border border-line bg-surface overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+        <div>
+          <h3 className="text-[14px] font-semibold text-ink">
+            Contract Invoke
+          </h3>
+          <p className="text-[12px] text-ink-3 mt-0.5">
+            Call a Soroban smart contract method
+          </p>
         </div>
-      )}
+        <Badge variant="teal">Soroban</Badge>
+      </div>
 
-      {/* Result */}
-      {status === "success" && result !== null && (
-        <div className="mt-3">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-[13px] font-semibold text-ink">Result</h4>
-            <button
-              type="button"
-              onClick={handleClear}
-              className="text-[12px] text-ink-2 hover:text-ink"
-            >
-              Clear
-            </button>
-          </div>
-          <pre className="rounded-lg bg-surface-2 p-4 text-[12px] text-ink-2 overflow-auto max-h-60">
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
-      )}
+      <div className="px-6 py-6">
+        {!isConnected ? (
+          <p className="text-[13px] text-ink-3 text-center py-8">
+            Connect your wallet to invoke contracts
+          </p>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <Input
+              label="Contract ID"
+              placeholder="C..."
+              value={contractId}
+              onChange={(e) => onContractIdChange(e.target.value)}
+              disabled={state === "loading"}
+            />
+            <Input
+              label="Method"
+              placeholder="transfer, balance, mint…"
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              disabled={state === "loading"}
+            />
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="soroban-args"
+                className="text-[12px] font-medium text-ink-2"
+              >
+                Arguments (JSON array)
+              </label>
+              <textarea
+                id="soroban-args"
+                placeholder='["arg1", 42]'
+                value={args}
+                onChange={(e) => setArgs(e.target.value)}
+                disabled={state === "loading"}
+                rows={3}
+                className="w-full rounded-lg border border-line bg-surface-2 px-4 py-3 text-[13px] font-mono text-ink placeholder:text-ink-4 outline-none focus:border-line-2 focus:ring-1 focus:ring-brand-dim transition-colors resize-none disabled:opacity-40"
+              />
+            </div>
+
+            {state === "success" && result !== null && (
+              <div className="rounded-lg bg-success-dim-subtle border border-success-dim px-5 py-4 flex flex-col gap-3">
+                <Badge variant="success" dot>
+                  Result
+                </Badge>
+                <pre className="text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">
+                  {JSON.stringify(result, null, 2)}
+                </pre>
+              </div>
+            )}
+            {state === "error" && error && (
+              <div className="rounded-lg bg-error-dim-muted border border-error-dim px-5 py-4">
+                <p className="text-[13px] text-red">{error}</p>
+              </div>
+            )}
+          </form>
+        )}
+      </div>
+
+      <div className="px-6 py-4 border-t border-line flex items-center gap-3">
+        {(state === "success" || state === "error") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setState("idle");
+              setResult(null);
+              setError(null);
+            }}
+          >
+            Clear
+          </Button>
+        )}
+        <Button
+          size="md"
+          loading={state === "loading"}
+          disabled={!canInvoke}
+          onClick={handleClick}
+        >
+          {state === "loading" ? "Invoking…" : "Invoke Contract"}
+        </Button>
+      </div>
     </div>
   );
 }

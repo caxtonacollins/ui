@@ -1,27 +1,19 @@
-/**
- * adapter.ts
- *
- * Two separate things live here:
- *
- * 1. `ClientAdapter` / `createClientAdapter()` — a lightweight adapter used
- *    in tests that does NOT depend on @creit.tech/stellar-wallets-kit.
- *    It gives tests a well-typed surface for connect / invoke / events without
- *    pulling in any native-module dependencies.
- *
- * 2. `createStellarWalletsAdapter(coreClient)` — the production adapter that
- *    wraps StellarWalletsKit + sorokit-core. Import this lazily / at runtime
- *    only when you have the kit available; tests should never need it.
- */
-import {
-  type InvokeParams,
-  type SorokitClient as LocalSorokitClient,
-  type NetworkInfo,
-  type NetworkName,
-} from "./client";
+interface FreighterWallet {
+  requestAccess: () => Promise<{ error?: string }>;
+  getPublicKey: () => Promise<string>;
+}
 
-// ---------------------------------------------------------------------------
-// Lightweight test adapter — no stellar-wallets-kit dependency
-// ---------------------------------------------------------------------------
+interface XBullWallet {
+  requestPublicKey: () => Promise<string>;
+}
+
+interface AlbedoWallet {
+  publicKey: () => Promise<{ publicKey: string }>;
+}
+
+export interface ClientAdapterConfig {
+  network?: 'testnet' | 'public';
+}
 
 export interface AdapterResponse<T> {
   data: T | null;
@@ -30,245 +22,208 @@ export interface AdapterResponse<T> {
 }
 
 /**
- * A standalone adapter that manages an in-memory connected address.
- * Does not require a real wallet or RPC; used in tests and as a baseline
- * implementation pattern.
+ * Universal client adapter for Stellar wallet connections
+ * Supports Freighter, xBull, Albedo, and testnet mocking
  */
 export class ClientAdapter {
-  private address: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private soroban: any = null;
+  private userAddress: string | null = null;
 
-  getAddress(): string | null {
-    return this.address;
+  constructor() {
   }
 
+  /**
+   * Connect to user's wallet
+   * @returns User's public key or error
+   */
   async connect(): Promise<AdapterResponse<string>> {
-    // In a real environment we would invoke the wallet picker here.
-    // Outside a browser wallet context (e.g. tests) return a meaningful error.
-    if (typeof window === "undefined" || !("stellar" in window || "freighter" in window)) {
+    try {
+      // Check for browser wallet extensions
+      if (typeof window === 'undefined') {
+        return {
+          data: null,
+          error: 'Wallet connection not available in non-browser environment',
+          status: 'error',
+        };
+      }
+
+      // Try to connect to installed wallet
+      let connectedAddress: string | null = null;
+      const win = window as unknown as Record<string, unknown>;
+
+      // Check Freighter
+      const freighter = win.freighter as FreighterWallet | undefined;
+      if (freighter) {
+        try {
+          const result = await freighter.requestAccess();
+          if (result.error) {
+            throw new Error(result.error);
+          }
+          const pk = await freighter.getPublicKey();
+          connectedAddress = pk;
+        } catch (e) {
+          console.debug('Freighter not available:', e);
+        }
+      }
+
+      // Check xBull
+      const xBull = win.xBull as XBullWallet | undefined;
+      if (!connectedAddress && xBull) {
+        try {
+          const pk = await xBull.requestPublicKey();
+          connectedAddress = pk;
+        } catch (e) {
+          console.debug('xBull not available:', e);
+        }
+      }
+
+      // Check Albedo
+      const albedo = win.albedo as AlbedoWallet | undefined;
+      if (!connectedAddress && albedo) {
+        try {
+          const result = await albedo.publicKey();
+          connectedAddress = result.publicKey;
+        } catch (e) {
+          console.debug('Albedo not available:', e);
+        }
+      }
+
+      if (!connectedAddress) {
+        return {
+          data: null,
+          error: 'No Stellar wallet found. Install Freighter, xBull, or Albedo.',
+          status: 'error',
+        };
+      }
+
+      this.userAddress = connectedAddress;
+      return {
+        data: connectedAddress,
+        error: null,
+        status: 'success',
+      };
+    } catch (err: unknown) {
       return {
         data: null,
-        error: "No Stellar wallet found. Please install Freighter or another Stellar wallet extension.",
-        status: "error",
+        error: (err instanceof Error) ? err.message : 'Connection failed',
+        status: 'error',
       };
     }
-
-    return {
-      data: null,
-      error: "No Stellar wallet found. Please install Freighter or another Stellar wallet extension.",
-      status: "error",
-    };
   }
 
-  disconnect(): void {
-    this.address = null;
-  }
-
+  /**
+   * Invoke a Soroban smart contract
+   * @param contractId - Contract ID
+   * @param method - Method name
+   * @param params - Method parameters
+   */
   async invokeContract(
     contractId: string,
     method: string,
-    args?: unknown[],
+    params: unknown[] = []
   ): Promise<AdapterResponse<unknown>> {
-    if (!this.address) {
+    try {
+      if (!this.userAddress) {
+        return {
+          data: null,
+          error: 'Not connected. Call connect() first.',
+          status: 'error',
+        };
+      }
+
+      if (!this.soroban) {
+        return {
+          data: null,
+          error: 'Soroban client not initialized',
+          status: 'error',
+        };
+      }
+
+      // Actual implementation would invoke the contract
+      // This is a stub for now
+      const result = await this.soroban.invokeContract({
+        contractId,
+        method,
+        params,
+      });
+
+      return {
+        data: result,
+        error: null,
+        status: 'success',
+      };
+    } catch (err: unknown) {
       return {
         data: null,
-        error: "Not connected. Call connect() first.",
-        status: "error",
+        error: `Contract invocation failed: ${(err instanceof Error) ? err.message : 'Unknown error'}`,
+        status: 'error',
       };
     }
-    void contractId; void method; void args; // suppress unused-var lint
-    return { data: null, error: null, status: "success" };
   }
 
+  /**
+   * Get events from a Soroban contract
+   * @param contractId - Contract ID
+   * @param limit - Maximum number of events
+   */
   async getEvents(
     contractId: string,
-    limit?: number,
+    limit: number = 100
   ): Promise<AdapterResponse<unknown[]>> {
-    if (!this.address) {
+    try {
+      if (!this.userAddress) {
+        return {
+          data: null,
+          error: 'Not connected. Call connect() first.',
+          status: 'error',
+        };
+      }
+
+      if (!this.soroban) {
+        return {
+          data: null,
+          error: 'Soroban client not initialized',
+          status: 'error',
+        };
+      }
+
+      const events = await this.soroban.getEvents({
+        contractId,
+        limit,
+      });
+
+      return {
+        data: events,
+        error: null,
+        status: 'success',
+      };
+    } catch (err: unknown) {
       return {
         data: null,
-        error: "Not connected. Call connect() first.",
-        status: "error",
+        error: `Failed to fetch events: ${(err instanceof Error) ? err.message : 'Unknown error'}`,
+        status: 'error',
       };
     }
-    void contractId; void limit;
-    return { data: [], error: null, status: "success" };
+  }
+
+  /**
+   * Get connected user's address
+   */
+  getAddress(): string | null {
+    return this.userAddress;
+  }
+
+  /**
+   * Disconnect wallet
+   */
+  disconnect(): void {
+    this.userAddress = null;
+    this.soroban = null;
   }
 }
 
-/** Factory for the lightweight test adapter. */
+// Factory for creating adapters
 export function createClientAdapter(): ClientAdapter {
   return new ClientAdapter();
-}
-
-// ---------------------------------------------------------------------------
-// Production adapter — lazily imports StellarWalletsKit to avoid breaking
-// test environments that lack the native binary dependencies.
-// ---------------------------------------------------------------------------
-
-export interface ClientAdapterConfig {
-  walletAdapter?: unknown;
-  network?: "testnet" | "public";
-}
-
-/**
- * Create a full `LocalSorokitClient` backed by StellarWalletsKit.
- * This function dynamically imports the kit so that test files which only
- * import `ClientAdapter`/`createClientAdapter` are not affected by any
- * native-module resolution issues.
- *
- * @param coreClient — A sorokit-core client instance.
- */
-export async function createStellarWalletsAdapter(
-  coreClient: {
-    soroban: {
-      invokeContract(p: InvokeParams): Promise<unknown>;
-      getEvents(contractId: string, limit?: number): Promise<unknown>;
-    };
-    network: {
-      getConfig(): {
-        network: string;
-        networkPassphrase: string;
-        rpcUrl: string;
-        horizonUrl: string;
-      };
-    };
-  },
-): Promise<LocalSorokitClient> {
-  const {
-    StellarWalletsKit,
-    WalletNetwork,
-    allowAllModules,
-    FREIGHTER_ID,
-  } = await import("@creit.tech/stellar-wallets-kit");
-
-  const kit = new StellarWalletsKit({
-    network: WalletNetwork.TESTNET,
-    selectedWalletId: FREIGHTER_ID,
-    modules: allowAllModules(),
-  });
-
-  return {
-    wallet: {
-      connect: async () => {
-        try {
-          await kit.openModal({
-            onWalletSelected: async (option: { id: string }) => {
-              kit.setWallet(option.id);
-            },
-            modalTitle: "Connect Wallet",
-          });
-          const publicKey = await kit.getPublicKey();
-          return { data: { address: publicKey }, error: null, status: "success" };
-        } catch (error) {
-          return {
-            data: null,
-            error: error instanceof Error ? error.message : "Failed to connect",
-            status: "error",
-          };
-        }
-      },
-      disconnect: async () => {},
-      getAddress: async () => {
-        try {
-          const publicKey = await kit.getPublicKey();
-          return { data: publicKey, error: null };
-        } catch {
-          return { data: null, error: "Not connected" };
-        }
-      },
-    },
-
-    account: {
-      getAccount: async (address: string) => ({
-        data: { address, sequence: "174792435", subentryCount: 3 },
-        error: null,
-        status: "success",
-      }),
-      getBalances: async () => ({
-        data: [
-          { asset: "XLM", balance: "1042.5000000", assetType: "native" as const },
-          {
-            asset: "USDC",
-            balance: "250.0000000",
-            assetType: "credit_alphanum4" as const,
-            assetCode: "USDC",
-            assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
-          },
-        ],
-        error: null,
-      }),
-      getClaimableBalances: async () => ({ data: [], error: null }),
-      claimBalance: async () => ({
-        data: { hash: "mock-hash", ledger: 1, successful: true },
-        error: null,
-      }),
-    },
-
-    transaction: {
-      submit: async () => ({
-        data: { hash: "mock-hash", ledger: 1, successful: true },
-        error: null,
-        status: "success",
-      }),
-      getStatus: async () => ({ data: "success" as const, error: null }),
-      getHistory: async () => ({
-        data: [],
-        error: null,
-        total: 0,
-      }),
-      estimateFee: async () => ({
-        data: { baseFee: "100", recommended: "200" },
-        error: null,
-      }),
-    },
-
-    soroban: {
-      invokeContract: async (params: InvokeParams) => {
-        try {
-          const result = await coreClient.soroban.invokeContract(params);
-          return { data: result, error: null, status: "success" };
-        } catch (e) {
-          return {
-            data: null,
-            error: e instanceof Error ? e.message : "Error",
-            status: "error",
-          };
-        }
-      },
-      getEvents: async (contractId: string, limit?: number) => {
-        try {
-          const result = await coreClient.soroban.getEvents(contractId, limit);
-          return { data: result as import("./client").ContractEvent[], error: null };
-        } catch (e) {
-          return {
-            data: null,
-            error: e instanceof Error ? e.message : "Error",
-          };
-        }
-      },
-    },
-
-    network: {
-      getNetwork: async () => {
-        const config = coreClient.network.getConfig();
-        const networkInfo: NetworkInfo = {
-          name: config.network as NetworkName,
-          passphrase: config.networkPassphrase,
-          rpcUrl: config.rpcUrl,
-          horizonUrl: config.horizonUrl,
-        };
-        return { data: networkInfo, error: null };
-      },
-      switchNetwork: async (_network: NetworkName) => {
-        const config = coreClient.network.getConfig();
-        const networkInfo: NetworkInfo = {
-          name: config.network as NetworkName,
-          passphrase: config.networkPassphrase,
-          rpcUrl: config.rpcUrl,
-          horizonUrl: config.horizonUrl,
-        };
-        return { data: networkInfo, error: null };
-      },
-    },
-  };
 }

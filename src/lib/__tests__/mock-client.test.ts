@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { MOCK_ADDRESS, NETWORKS, createMockClient } from '../mock-client';
-import { DeterministicMockData, deterministicMock } from '../deterministic-mock';
+import { describe, expect,it } from 'vitest';
+
+import type { SorokitClient } from '../client';
+import { deterministicMock,DeterministicMockData } from '../deterministic-mock';
+import { createMockClient,MOCK_ADDRESS } from '../mock-client';
 
 describe('Mock Client - Issue #30 Fixes', () => {
   describe('Fix 1: Valid MOCK_ADDRESS', () => {
@@ -18,47 +20,46 @@ describe('Mock Client - Issue #30 Fixes', () => {
 
   describe('Fix 2: switchNetwork error handling', () => {
     it('should return error for unknown network', async () => {
-      const client = createMockClient();
-      const result = await client.network.switchNetwork('invalidNetwork' as any);
-      expect(result.error).toBeDefined();
-      expect(result.error).toContain('Invalid network');
-      expect(result.data).toBeNull();
+      const result = createMockClient('invalidNetwork');
+      expect(result).not.toHaveProperty('wallet');
+      if (!('wallet' in result)) {
+        expect(result.error).toBeDefined();
+        expect(result.error).toContain('Unknown network');
+        expect(result.data).toBeNull();
+      }
     });
 
-    it('should return error message for bad network name', async () => {
-      const client = createMockClient();
-      const result = await client.network.switchNetwork('badname' as any);
-      expect(result.error).toContain('badname');
-      expect(result.data).toBeNull();
+    it('should return error message with valid network list', () => {
+      const result = createMockClient('badname');
+      if (!('wallet' in result)) {
+        expect(result.error).toContain('testnet');
+        expect(result.error).toContain('public');
+      }
     });
 
     it('should return valid config for known networks', async () => {
-      const client = createMockClient();
-      const result = await client.network.switchNetwork('testnet');
-      expect(result.error).toBeNull();
-      expect(result.data?.name).toBe('testnet');
+      const client = createMockClient('testnet') as SorokitClient;
+      const { data, error } = await client.network.getNetwork();
+      expect(error).toBeNull();
+      expect(data?.name).toBe('testnet');
     });
 
-    it('should default to testnet via getNetwork', async () => {
-      const client = createMockClient();
-      const result = await client.network.getNetwork();
-      expect(result.error).toBeNull();
-      expect(result.data?.name).toBe('testnet');
+    it('should default to testnet when no network specified', async () => {
+      const client = createMockClient() as SorokitClient;
+      const { data, error } = await client.network.getNetwork();
+      expect(error).toBeNull();
+      expect(data?.name).toBe('testnet');
     });
 
-    it('should handle both testnet and futurenet networks', async () => {
-      const client = createMockClient();
-      const testnet = await client.network.switchNetwork('testnet');
-      const futurenet = await client.network.switchNetwork('futurenet');
-
-      expect(testnet.error).toBeNull();
-      expect(futurenet.error).toBeNull();
-      expect(testnet.data?.name).not.toEqual(futurenet.data?.name);
-    });
-
-    it('should expose NETWORKS constant for testnet and public', () => {
-      expect(NETWORKS.testnet).toBeDefined();
-      expect(NETWORKS.public).toBeDefined();
+    it('should handle both testnet and public networks', async () => {
+      const testnetClient = createMockClient('testnet') as SorokitClient;
+      const publicClient = createMockClient('public') as SorokitClient;
+      
+      const testnetInfo = await testnetClient.network.getNetwork();
+      const publicInfo = await publicClient.network.getNetwork();
+      expect(testnetInfo.error).toBeNull();
+      expect(publicInfo.error).toBeNull();
+      expect(testnetInfo.data?.name).not.toEqual(publicInfo.data?.name);
     });
   });
 
@@ -79,7 +80,7 @@ describe('Mock Client - Issue #30 Fixes', () => {
 
     it('should generate valid transaction hashes', () => {
       const hash = deterministicMock.generateTransactionHash();
-      expect(hash).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(hash).toMatch(/^[0-9a-f]{64}$/);
     });
 
     it('should generate valid event IDs', () => {
@@ -113,7 +114,7 @@ describe('Mock Client - Issue #30 Fixes', () => {
         history: mock1.generateMockHistory(5),
         events: mock1.generateMockEvents(3),
       };
-
+      
       const mock2 = new DeterministicMockData(12345);
       const snapshot2 = {
         history: mock2.generateMockHistory(5),

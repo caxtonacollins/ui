@@ -1,91 +1,128 @@
-import React from "react";
+import { AlertCircleIcon, Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 
-export interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  /** Custom fallback renderer. Receives the caught error and a reset function. */
-  fallback?: (error: Error, reset: () => void) => React.ReactNode;
-  /** Called when an error is caught. */
-  onError?: (error: Error) => void;
+import { cn } from "../lib/utils";
+
+interface Props {
+  children: ReactNode;
+  /** Custom fallback UI. Receives the error and a reset callback. */
+  fallback?: (error: Error, reset: () => void) => ReactNode;
+  /** Called when the boundary catches an error. */
+  onError?: (error: Error, info: ErrorInfo) => void;
+  /** Render fallback content as an in-page scoped panel instead of a full-page state. */
+  isolate?: boolean;
 }
 
-interface ErrorBoundaryState {
-  hasError: boolean;
+interface State {
   error: Error | null;
+  resetKey: number;
 }
 
-/**
- * React error boundary that catches synchronous rendering errors in child
- * components and displays a fallback UI.
- *
- * Usage:
- * ```tsx
- * <ErrorBoundary>
- *   <MyComponent />
- * </ErrorBoundary>
- *
- * // With a custom fallback:
- * <ErrorBoundary fallback={(error, reset) => (
- *   <div>
- *     <p>{error.message}</p>
- *     <button onClick={reset}>Try again</button>
- *   </div>
- * )}>
- *   <MyComponent />
- * </ErrorBoundary>
- * ```
- */
-export class ErrorBoundary extends React.Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false, error: null };
-    this.reset = this.reset.bind(this);
+export class ErrorBoundary extends Component<Props, State> {
+  state: State = { error: null, resetKey: 0 };
+
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    return { error };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    if (this.props.onError) {
+      this.props.onError(error, info);
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.error("[sorokit-ui] Uncaught error:", error, info.componentStack);
+    }
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo): void {
-    this.props.onError?.(error);
-    // Log error info for debugging — suppressed in tests via vi.spyOn(console, 'error')
-    console.error("[ErrorBoundary]", error, info.componentStack);
-  }
+  reset = () =>
+    this.setState((state) => ({
+      error: null,
+      resetKey: state.resetKey + 1,
+    }));
 
-  reset(): void {
-    this.setState({ hasError: false, error: null });
-  }
+  render() {
+    const { error, resetKey } = this.state;
+    const { children, fallback, isolate } = this.props;
 
-  render(): React.ReactNode {
-    if (this.state.hasError && this.state.error) {
-      const error = this.state.error;
+    if (!error) return <div key={resetKey}>{children}</div>;
 
-      if (this.props.fallback) {
-        return this.props.fallback(error, this.reset);
-      }
+    if (fallback) {
+      const fallbackNode = fallback(error, this.reset);
 
-      return (
+      return isolate ? (
         <div
-          role="alert"
-          className="rounded-xl border border-error-dim-strong bg-error-dim p-6"
+          className="overflow-hidden rounded-xl border border-line bg-surface"
         >
-          <h3 className="text-[14px] font-semibold text-ink mb-2">
-            Something went wrong
-          </h3>
-          <p className="text-[13px] text-ink-2 mb-4">{error.message}</p>
-          <button
-            type="button"
-            onClick={this.reset}
-            className="rounded-lg bg-brand text-white h-8 px-3.5 text-[12px] font-medium"
-          >
-            Try again
-          </button>
+          {fallbackNode}
         </div>
+      ) : (
+        fallbackNode
       );
     }
 
-    return this.props.children;
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-center bg-base px-4",
+          isolate
+            ? "min-h-[260px] overflow-hidden rounded-xl border border-line bg-surface py-8"
+            : "min-h-screen"
+        )}
+      >
+        <div className="w-full max-w-[400px] flex flex-col items-center gap-6 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-error-dim border border-error-dim-strong flex items-center justify-center">
+            <HugeiconsIcon
+              icon={AlertCircleIcon}
+              size={24}
+              color="currentColor"
+              strokeWidth={1.5}
+              className="text-red"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-[18px] font-semibold text-ink">
+              Something went wrong
+            </h2>
+            <p className="text-[13px] text-ink-3 leading-relaxed">
+              An unexpected error occurred. You can try reloading the page or
+              resetting the component.
+            </p>
+          </div>
+          <div className="w-full rounded-xl border border-error-dim bg-error-dim-subtle px-5 py-4 text-left">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4 mb-2">
+              Error
+            </p>
+            <p className="text-[12px] font-mono text-red break-all">
+              {import.meta.env.DEV
+                ? error.message
+                : "Details are hidden in production."}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={this.reset}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-surface-2 border border-line hover:border-line-2 text-[13px] text-ink-2 transition-colors cursor-pointer"
+            >
+              <HugeiconsIcon
+                icon={Refresh01Icon}
+                size={14}
+                color="currentColor"
+                strokeWidth={1.5}
+              />
+              Try again
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-brand text-white text-[13px] font-medium hover:bg-brand-hover transition-colors cursor-pointer"
+            >
+              Reload page
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 }

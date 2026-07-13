@@ -1,14 +1,17 @@
-import { forwardRef, useId, useState, useEffect } from "react";
+import { forwardRef, useEffect,useId, useState } from "react";
+
 import { cn } from "@/lib/utils";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
+  /** Render a multi-line `<textarea>` instead of a single-line `<input>`. */
+  multiline?: boolean;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, className, id, ...props }, ref) => {
+  ({ label, error, hint, multiline, className, id, ...props }, ref) => {
     const generatedId = useId();
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-") ?? generatedId;
 
@@ -37,25 +40,47 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <input
-          ref={ref}
-          id={inputId}
-          aria-invalid={!!error}
-          aria-describedby={
-            error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined
-          }
-          className={cn(
-            "h-9 w-full rounded-lg border bg-surface-2 px-3.5",
-            "text-[13px] text-ink placeholder:text-ink-4",
-            "outline-none transition-colors",
-            error
-              ? "border-error-dim-input focus:border-red focus:ring-1 ring-error-dim"
-              : "border-line focus:border-line-2 focus:ring-1 focus:ring-brand-dim",
-            "disabled:opacity-40 disabled:cursor-not-allowed",
-            className,
-          )}
-          {...props}
-        />
+        {multiline ? (
+          <textarea
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            id={inputId}
+            aria-invalid={!!error}
+            aria-describedby={
+              error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined
+            }
+            className={cn(
+              "min-h-[72px] w-full rounded-lg border bg-surface-2 px-3.5 py-2",
+              "text-[13px] text-ink placeholder:text-ink-4",
+              "outline-none transition-colors resize-y",
+              error
+                ? "border-error-dim-input focus:border-red focus:ring-1 ring-error-dim"
+                : "border-line focus:border-line-2 focus:ring-1 focus:ring-brand-dim",
+              "disabled:opacity-40 disabled:cursor-not-allowed",
+              className,
+            )}
+            {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+          />
+        ) : (
+          <input
+            ref={ref}
+            id={inputId}
+            aria-invalid={!!error}
+            aria-describedby={
+              error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined
+            }
+            className={cn(
+              "h-9 w-full rounded-lg border bg-surface-2 px-3.5",
+              "text-[13px] text-ink placeholder:text-ink-4",
+              "outline-none transition-colors",
+              error
+                ? "border-error-dim-input focus:border-red focus:ring-1 ring-error-dim"
+                : "border-line focus:border-line-2 focus:ring-1 focus:ring-brand-dim",
+              "disabled:opacity-40 disabled:cursor-not-allowed",
+              className,
+            )}
+            {...props}
+          />
+        )}
         <div className="min-h-[18px] relative">
           <p
             id={`${inputId}-error`}
