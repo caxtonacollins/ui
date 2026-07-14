@@ -63,6 +63,7 @@ function EventRow({ event }: { event: ContractEvent }) {
 }
 
 export interface ContractEventFeedProps {
+  /** The Soroban contract ID to monitor */
   contractId: string;
   /** Auto-poll interval in ms. 0 = manual only. */
   pollInterval?: number;

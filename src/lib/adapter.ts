@@ -18,7 +18,7 @@ export interface ClientAdapterConfig {
 export interface AdapterResponse<T> {
   data: T | null;
   error: string | null;
-  status: 'success' | 'error' | 'pending';
+  status: "success" | "error" | "pending";
 }
 
 /**
